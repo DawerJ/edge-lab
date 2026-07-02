@@ -463,7 +463,7 @@ async function pbUnlock(){
   const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
   if(pbSave(new TextDecoder().decode(pt)))render();
  }catch(e){alert("Wrong passphrase — try again.")}}
-function unlockCard(){return `<div class="card" style="border-color:var(--blue)"><b>🔓 One-time unlock</b><div class="note" style="margin:4px 0 8px">Your playbook (scripts, answers, negotiation lines) ships encrypted. Enter the passphrase once — after that, everything just works on this device.</div><div class="row"><input type="password" id="pbp" placeholder="passphrase" style="flex:1;margin:0" onkeydown="if(event.key==='Enter')pbUnlock()"><button class="btn small" style="flex:0 0 90px" onclick="pbUnlock()">Unlock</button></div></div>`}
+function unlockCard(upd){return `<div class="card" style="border-color:var(--blue)"><b>${upd?"🔄 Playbook update available":"🔓 One-time unlock"}</b><div class="note" style="margin:4px 0 8px">${upd?"New content shipped (your resume & cover letter, now scoreable). Same passphrase, one more time.":"Your playbook (scripts, answers, negotiation lines) ships encrypted. Enter the passphrase once — after that, everything just works on this device."}</div><div class="row"><input type="password" id="pbp" placeholder="passphrase" style="flex:1;margin:0" onkeydown="if(event.key==='Enter')pbUnlock()"><button class="btn small" style="flex:0 0 90px" onclick="pbUnlock()">Unlock</button></div></div>`}
 function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,frzWk:null},
  kc:Object.fromEntries(Object.keys(KC).map(k=>[k,{lv:0,due:null,reps:0}])),
  log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],rcpt:{},crm:[],scores:{},
@@ -529,7 +529,7 @@ function vToday(){
   <div class="tile"><div class="lab">Offer odds*</div><div class="val" style="color:var(--blue)">${p}%</div><div class="sub">SIG alone: ${ps}%</div></div>
   <div class="tile"><div class="lab">EV banked*</div><div class="val" style="color:var(--good)">+${fmt$(evDelta())}</div><div class="sub">since day one</div></div>
  </div>
- ${(!PB&&PBC)?unlockCard():""}
+ ${(PBC&&(!PB||!PB.assets))?unlockCard(!!PB):""}
  ${missionCard()}
  <div class="card">
   <h2 style="margin-top:0">Today's quests ${questsDone()?"✅":""}</h2>
@@ -561,7 +561,7 @@ function vMissions(){const d=daysIn();
  V.innerHTML=`<div class="card"><div class="q">Execution missions</div><div class="note">Day ${d} of the campaign. These move your odds ~2× more than all studying combined — the app will not show you a great number while they stall.</div></div>`+
  MISSIONS.map(m=>{const done=S.missions[m.id],od=!done&&m.by<d;
   return `<div class="card" ${od?'style="border-color:var(--bad)"':""}><b>${done?"✅ ":od?"⚠️ ":"⬜ "}${m.t}</b> <span class="note">+${Math.round(m.p*100)}pts · target day ${m.by}${done?" · done "+done:""}</span><div class="note" style="margin-top:4px">${m.w}</div>${done?"":`<div class="row" style="margin-top:8px"><button class="btn small" style="background:var(--violet)" onclick="chauffeur('${m.id}')">🚗 Chauffeur</button><button class="btn sec small" onclick="msDone('${m.id}')">Mark done</button>${m.s&&PB?`<button class="btn sec small" onclick="vScript('${m.s}')">Script</button>`:""}</div>`}</div>`}).join("")+
- `${PB?`<button class="btn sec" onclick="vPlaybook()">📖 Playbook — every script & answer</button><div style="height:8px"></div>`:PBC?unlockCard():""}<button class="btn sec small" onclick="go('today')">Home</button>`}
+ `${PB?`<button class="btn sec" onclick="vPlaybook()">📖 Playbook — every script & answer</button><div style="height:8px"></div>`:PBC?unlockCard(false):""}<button class="btn sec small" onclick="go('today')">Home</button>`}
 function vScript(id){const s=(PB?.scripts||[]).find(x=>x.id===id)||(PB?.answers||[]).find(x=>x.id===id);
  if(!s)return vPlaybook();
  V.innerHTML=`<div class="card"><div class="q">${s.title||s.q}</div><div class="a" style="user-select:all">${(s.body||s.a).replace(/</g,"&lt;")}</div>
