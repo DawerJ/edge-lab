@@ -466,7 +466,7 @@ async function pbUnlock(){
 function unlockCard(){return `<div class="card" style="border-color:var(--blue)"><b>🔓 One-time unlock</b><div class="note" style="margin:4px 0 8px">Your playbook (scripts, answers, negotiation lines) ships encrypted. Enter the passphrase once — after that, everything just works on this device.</div><div class="row"><input type="password" id="pbp" placeholder="passphrase" style="flex:1;margin:0" onkeydown="if(event.key==='Enter')pbUnlock()"><button class="btn small" style="flex:0 0 90px" onclick="pbUnlock()">Unlock</button></div></div>`}
 function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,frzWk:null},
  kc:Object.fromEntries(Object.keys(KC).map(k=>[k,{lv:0,due:null,reps:0}])),
- log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],rcpt:{},
+ log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],rcpt:{},crm:[],scores:{},
  set:{key:"",par:1,base:600,target:2500,horizon:4,tax:0.42,voice:false}}}
 function load(){try{S=Object.assign(defaults(),JSON.parse(localStorage.el||"{}"));S.set=Object.assign(defaults().set,S.set);S.kc=Object.assign(defaults().kc,S.kc)}catch(e){S=defaults()}
  if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
@@ -479,7 +479,7 @@ function readiness(){const dom={};for(const[k,m]of Object.entries(KC)){(dom[m[1]
  let r=0;for(const[d,w]of Object.entries(DOMW)){const a=dom[d]||[0];r+=w*(a.reduce((x,y)=>x+y,0)/a.length)}return r}
 function calScore(){const b=S.brier.slice(-30);if(b.length<5)return .25;return b.reduce((x,y)=>x+y,0)/b.length}
 function execPts(){return MISSIONS.reduce((a,m)=>a+(S.missions[m.id]?m.p:0),0)}
-function parEff(){return S.pipe.length>0?S.pipe.length:S.set.par}
+function parEff(){const live=(S.crm||[]).filter(c=>c.st>=3).length;return live>0?live:(S.pipe.length>0?S.pipe.length:S.set.par)}
 function oddsSig(){const r=readiness();let p=.18+execPts()+.13*r;const c=calScore();if(c<.15)p+=.02;else if(c<.22)p+=.01;p+=Math.min(S.streak.n,14)*.0015;return Math.min(p,.62)}
 function oddsAny(){const p=oddsSig();const alt=Math.min(.08+.10*readiness()+.5*execPts(),.35);return 1-(1-p)*Math.pow(1-alt,parEff())}
 function daysIn(){return Math.floor((Date.now()-new Date(S.created).getTime())/DAY)}
@@ -540,8 +540,8 @@ function vToday(){
  <button class="btn" onclick="startDrill()">Start smart session ${nd?`(${nd} due)`:""}</button>
  <div class="row" style="margin-top:8px">
   <button class="btn sec small" onclick="go('sprint')">Sprint</button>
-  <button class="btn sec small" onclick="vPitch()">Pitch rep</button>
   <button class="btn sec small" onclick="vMissions()">Missions</button>
+  <button class="btn sec small" onclick="vWar()">📊 War room</button>
  </div>
  ${S.lore<LORE.length&&S.xp>=(S.lore+1)*120?`<div class="card flash"><div class="lore">🃏 <b>Edge card unlocked:</b><br>${LORE[S.lore]}</div><button class="btn sec small" onclick="S.lore++;save();render()">Collect</button></div>`:""}
  <div class="note">*Motivational model — directionally honest, precisely made up. Drivers, in order of weight: execution missions (${Math.round(execPts()*100)}/28pts), pipeline (${parEff()} live), knowledge, calibration, streak.</div>`}
@@ -567,6 +567,40 @@ function vScript(id){const s=(PB?.scripts||[]).find(x=>x.id===id)||(PB?.answers|
  V.innerHTML=`<div class="card"><div class="q">${s.title||s.q}</div><div class="a" style="user-select:all">${(s.body||s.a).replace(/</g,"&lt;")}</div>
  <button class="btn sec small" onclick="navigator.clipboard.writeText(document.querySelector('.a').innerText);this.textContent='Copied ✓'">Copy</button></div>
  <button class="btn sec small" onclick="vMissions()">Back</button>`}
+/* ---------- WAR ROOM ---------- */
+const STAGES=["Sent","Replied","Call","Process","Interview","Offer"];
+function vWar(){
+ const c=S.crm||[];const cnt=i=>c.filter(x=>x.st>=i).length;
+ const AS={resume:"Resume",cover_letter:"Cover letter"};
+ V.innerHTML=`<div class="card"><div class="q">📊 War room</div><div class="note">Your assets with AI quality scores, and the pipeline CRM. This is the whole campaign on one screen.</div></div>
+ <h2>Assets</h2>
+ ${Object.entries(AS).map(([id,t])=>{const sc=S.scores[id];const txt=PB?.assets?.[id];const todo=txt?(txt.match(/TO ANSWER|\[\[/g)||[]).length:0;
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>${t}</b>${sc?`<span class="chip" style="border-color:${sc.v>=80?"var(--good)":sc.v>=60?"var(--warn)":"var(--bad)"};font-weight:700">${sc.v}/100</span>`:'<span class="note">unscored</span>'}</div>
+  ${!txt?'<div class="note">🔒 unlock playbook (Today screen) to load</div>':todo?`<div class="note" style="color:var(--warn)">⚠ ${todo} unresolved item${todo>1?"s":""} — chauffeur the resume mission to fill them</div>`:""}
+  ${sc?`<div class="note" style="margin-top:4px">Fixes: ${esc((sc.fx||[]).join(" · "))}</div><div class="note">scored ${sc.ts}</div>`:""}
+  <div class="row" style="margin-top:8px">${txt?`<button class="btn sec small" onclick="viewAsset('${id}')">Open</button>`:""}${txt&&S.set.key?`<button class="btn small" onclick="scoreAsset('${id}',this)">🤖 Score it</button>`:""}</div></div>`}).join("")}
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Pitch</b><span class="note">${S.pitches} reps · graded live in Coach mocks</span></div><div class="row" style="margin-top:8px"><button class="btn sec small" onclick="vPitch()">Rep it</button>${S.set.key?`<button class="btn small" onclick="tab='coach';nav();vCoach();send('Grade my 30-second pitch: I will deliver it now — ask me to go, listen, then score it 0-100 against my playbook pitch with two fixes.')">🤖 Grade with AI</button>`:""}</div></div>
+ <h2>Pipeline CRM</h2>
+ <div class="tilegrid">
+  <div class="tile"><div class="lab">Outreach</div><div class="val">${c.length}</div></div>
+  <div class="tile"><div class="lab">Replied</div><div class="val">${cnt(1)}</div></div>
+  <div class="tile"><div class="lab">Live processes</div><div class="val" style="color:var(--aqua)">${cnt(3)}</div></div>
+  <div class="tile"><div class="lab">Interviews</div><div class="val" style="color:var(--blue)">${cnt(4)}</div></div>
+ </div>
+ <div class="card">
+ ${c.length?c.map((x,i)=>`<div class="quest"><div><b>${esc(x.n)}</b> <span class="note">${esc(x.f||"")}</span><div class="note">${STAGES[x.st]} · last touch ${x.ts}</div></div><span class="st"><button class="chip" onclick="crmSt(${i},1)">▲</button><button class="chip" onclick="crmSt(${i},-1)">▼</button><button class="chip" style="color:var(--bad)" onclick="crmDel(${i})">✕</button></span></div>`).join(""):'<div class="note">No contacts yet. Every recruiter reply, headhunter, and application belongs here — ▲ advances the stage.</div>'}
+ <div class="row" style="margin-top:10px"><input type="text" id="cn" placeholder="Name" style="flex:1;margin:0"><input type="text" id="cf" placeholder="Firm" style="flex:1;margin:0"></div>
+ <button class="btn sec small" style="margin-top:8px" onclick="crmAdd()">+ Add contact</button></div>
+ <button class="btn sec small" onclick="go('today')">Home</button>`}
+function crmAdd(){const n=document.getElementById("cn").value.trim(),f=document.getElementById("cf").value.trim();if(!n)return;S.crm.push({n,f,st:0,ts:TODAY()});save();vWar()}
+function crmSt(i,d){const x=S.crm[i];x.st=Math.max(0,Math.min(5,x.st+d));x.ts=TODAY();save();vWar()}
+function crmDel(i){if(confirm("Remove "+S.crm[i].n+"?")){S.crm.splice(i,1);save();vWar()}}
+function viewAsset(id){V.innerHTML=`<div class="card"><div class="q">${id==="resume"?"Resume":"Cover letter"}</div><div class="a" style="max-height:62vh;overflow:auto">${esc(PB.assets[id])}</div><button class="btn sec small" onclick="navigator.clipboard.writeText(PB.assets['${id}']);this.textContent='Copied ✓'">Copy</button></div><button class="btn sec small" onclick="vWar()">Back</button>`}
+async function scoreAsset(id,btn){if(btn)btn.textContent="…";
+ try{const out=await api('You score job-application assets for a senior AI-research-leader candidate targeting top proprietary trading firms and multistrat hedge funds. Score HARD: 80+ means ready to send to a top firm today; unresolved placeholders cap the score at 65. Respond ONLY JSON: {"score":0-100,"fx":["three specific highest-impact fixes, ranked"]}.',
+  [{role:"user",content:"Asset type: "+id+"\n\n"+PB.assets[id]}],450);
+ const g=JSON.parse(out.match(/\{[\s\S]*\}/)[0]);S.scores[id]={v:g.score,fx:g.fx,ts:TODAY()};save();vWar()}
+ catch(e){alert("Scoring failed: "+e.message);vWar()}}
 function vPlaybook(){if(!PB)return vSet();
  V.innerHTML=`<div class="card"><div class="q">📖 Playbook</div><div class="note">Tap anything to open. Lives only on this device.</div></div>
  <h2>Scripts — what to say</h2><div class="card" style="padding:2px 14px">${(PB.scripts||[]).map(s=>`<div class="lesson" onclick="vScript('${s.id}')"><div class="ttl" style="font-size:14px">${s.title}</div><span class="prog">›</span></div>`).join("")}</div>
@@ -730,7 +764,7 @@ function pGrade(g){S.pitches++;S.xp+=g===2?15:8;questTick("learn");
  save();vPitch()}
 
 /* ---------- COACH ---------- */
-let chat=[];
+let chat=[];try{chat=JSON.parse(localStorage.el_chat||"[]")}catch(e){}
 function coachSys(){
  const dues=Object.keys(KC).filter(due).map(k=>KC[k][0]).slice(0,8);
  const weak=Object.entries(S.kc).filter(([k,m])=>m.lv<=1).map(([k])=>KC[k][0]).slice(0,8);
@@ -740,6 +774,7 @@ Style: conversational, 2-4 sentences per turn, ONE question at a time, math in w
 Modes on request: DRILL (rapid-fire questions), MOCK (SIG interviewer character; after confident claims ask "would you bet $1,000 at those odds?"; run make-a-market games and punish non-updating), LEARN (socratic), PITCH (critique like a skeptical SIG partner).
 Currently due for review: ${dues.join(", ")||"none"}. Weakest areas: ${weak.join(", ")||"none"}. Default: drill him on due items.
 CRITICAL: knowledge is not his bottleneck — execution is. Undone real-world missions: ${MISSIONS.filter(m=>!S.missions[m.id]).slice(0,3).map(m=>m.t).join("; ")||"none"}. Open EVERY session by asking, in one sentence, when he will do the top undone mission — get a specific day out of him before any drilling. If he dodges twice, call it what it is: avoidance dressed as studying.
+Campaign state — assets: resume score ${S.scores.resume?S.scores.resume.v+"/100":"unscored"}, cover letter ${S.scores.cover_letter?S.scores.cover_letter.v+"/100":"unscored"}. CRM: ${(S.crm||[]).length} contacts, ${(S.crm||[]).filter(c=>c.st>=1).length} replied, ${(S.crm||[]).filter(c=>c.st>=3).length} live processes, ${(S.crm||[]).filter(c=>c.st>=4).length} interviews. When he mentions sending outreach or hearing back, tell him to log it in the War room CRM.
 You also have web search: use it to find live job postings (lane + target firms are in the playbook's job_search_queries), to check firms and interviewers before calls, and to verify market facts. When listing roles, give title, firm, location, and link, and say which mission it advances.
 ${PB?`HIS PLAYBOOK (use to draft outreach/resumes/answers in HIS voice; adapt, don't invent facts): ${JSON.stringify(PB).slice(0,14000)}`:"No playbook imported yet — for drafting tasks, remind him to import it in Settings."}`}
 function vCoach(){
@@ -774,7 +809,7 @@ async function send(txt){
   let j=await call(msgs),hops=0;
   while(j.stop_reason==="pause_turn"&&hops<4){msgs=[...msgs,{role:"assistant",content:j.content}];j=await call(msgs);hops++}
   const out=j.content?j.content.filter(b=>b.type==="text").map(b=>b.text).join(""):(j.error?.message||"error");
-  chat[chat.length-1].content=out;vCoach();
+  chat[chat.length-1].content=out;localStorage.el_chat=JSON.stringify(chat.slice(-40));vCoach();
   speak(out,()=>{if(handsFree&&tab==="coach")micTo(null,document.getElementById("micb"),t=>send(t))})
  }catch(e){chat[chat.length-1].content="Network error: "+e.message;vCoach()}}
 let rec=null,handsFree=localStorage.el_hf==="1";
