@@ -207,11 +207,91 @@ const MISSIONS=[
  {id:"m_recr",t:"Reply to 3 recruiter inbounds",w:"Use the script. Free comp calibration + pipeline seeds.",p:.02,by:7,s:"recruiter_reply"},
  {id:"m_law",t:"Lawyer reads non-compete / IP docs",w:"A garden-leave surprise mid-process kills 'rapid'.",p:.01,by:14},
  {id:"m_hh",t:"Live comp bands from 2 headhunters",w:"'What are AI-lead mandates paying at multistrats?' — your negotiation database.",p:.01,by:14,s:"headhunter_ask"},
- {id:"m_proc",t:"First parallel process live (Tier 1)",w:"Citadel / Millennium / P72 / Balyasny. Your BATNA and your rehearsal stage.",p:.03,by:21},
+ {id:"m_proc",t:"First parallel process live (Tier 1)",w:"The tier-1 firms in your playbook. Your BATNA and your rehearsal stage.",p:.03,by:21},
  {id:"m_mock",t:"Paid mock with an ex-trader",w:"First contact with a hostile calibration-prober must not be the real interview.",p:.03,by:21,s:"mock_setup"},
  {id:"m_fire",t:"Live-fire interview at any firm",w:"The only true eval. Burn the rust where it doesn't count.",p:.03,by:28},
- {id:"m_date",t:"SIG interview on the calendar",w:"The forcing function. Everything compounds behind a date.",p:.04,by:35}
+ {id:"m_date",t:"Target-firm interview on the calendar",w:"The forcing function. Everything compounds behind a date.",p:.04,by:35}
 ];
+/* Chauffeur prompts: mission id → what the Coach walks him through */
+const CHAUF={
+ m_resume:"Chauffeur me through finishing my resume. Interview me ONE question at a time for the four open items: (1) the 2-3 real mechanisms of my research process (pre-registration? holdout governance? multiple-testing budgets? post-mortems? — ask what we actually do), (2) whether I have a time-to-first-production-signal metric, (3) my competitive interests (poker/chess/games — only if true), (4) a one-line explanation of the Vertex Labs / Vanguard date overlap. Then output the finished resume bullets ready to paste.",
+ m_call:"Chauffeur my referrer call: first draft the text I send to book it, then walk me through the agenda from my playbook one section at a time, then role-play as my referrer so I can practice.",
+ m_pkg:"Chauffeur shipping my package: give me the checklist from my playbook, then draft the exact email to my contact — bowling-lane framing paragraph included — ready to paste.",
+ m_comp:"Chauffeur my compliance check: draft a short, safely-worded note to Vanguard compliance asking whether I can reference the publicly-covered ML program's impact in interviews. Then tell me who to send it to and how to follow up.",
+ m_link:"Chauffeur my LinkedIn refresh: write my new headline and About section from my playbook, then tell me exactly where to add the two public articles as Featured items.",
+ m_recr:"Chauffeur my recruiter replies: I'll paste inbound messages and you draft each reply. If I have none handy, draft proactive outreach to two quant-specialist headhunters instead, from my playbook script.",
+ m_law:"Chauffeur the lawyer step: list the documents I need to gather, draft the email to a Philadelphia employment lawyer describing my situation (senior exec, asset manager to prop firm, non-compete/IP review), and tell me how to find the right one.",
+ m_hh:"Chauffeur the headhunter comp-bands ask: draft the exact messages from my playbook, tell me who to target, and set up how I log the answers.",
+ m_proc:"Chauffeur my first parallel process: search the web for current openings at my tier-1 firms (playbook job_search_queries), pick the best two, and draft the exact next step for each.",
+ m_mock:"Chauffeur booking a paid mock: search for coaching services with ex-prop-firm traders, give me the best options with links and prices, and draft the brief I send the coach from my playbook.",
+ m_fire:"Chauffeur my live-fire interview: ask me where each pipeline process stands, pick which should give me my first at-bat, and draft the message that moves it to a scheduled interview.",
+ m_date:"Chauffeur getting the SIG date: ask me where the process stands, then draft the calibrated nudge to my referrer or contact about timeline."};
+/* ---- Chauffeur wizards: pre-written artifact + deep link that OPENS the destination + witness gate ---- */
+const enc=encodeURIComponent;
+const pbs=id=>{const s=(PB?.scripts||[]).find(x=>x.id===id);return s?s.body:"🔒 Unlock your playbook on the Today screen first — then this draft appears here."};
+const WIZ={
+ m_resume:[
+  {s:"Question 1 of 4 — your research process. What are the 2–3 mechanisms your team ACTUALLY runs? (pre-registration? holdout governance? multiple-testing budgets? post-mortems?)",w:"Type the honest answer:"},
+  {s:"Question 2 — do you have a talent metric? Anything like 'median time from hire to first production signal'? If none, type 'none'.",w:"Your answer:"},
+  {s:"Question 3 — competitive interests: poker, chess, anything? Only if TRUE. If none, type 'none'.",w:"Your answer:"},
+  {s:"Question 4 — the Vertex Labs / Vanguard date overlap. One honest line (e.g. 'concurrent advisory role while transitioning').",w:"Your one-liner:"},
+  {s:"Done — now get these answers to Claude to finalize the resume. Tap below: an email to yourself opens with everything pre-filled. Send it, then paste it to Claude at your desk.",l:["Email my answers to myself",()=>"mailto:?subject="+enc("Resume answers for Claude")+"&body="+enc((S.rcpt.m_resume||[]).map((r,i)=>"Q"+(i+1)+": "+r.t).join("\n\n"))],w:"Type SENT once it's on its way:"}],
+ m_call:[
+  {s:"Book it — right now. The text is written. Tap, pick your referrer, hit send.",a:"Hey — could I grab 30 min this week to pick your brain before I send my stuff in? Want to make sure I aim it right.",l:["Open Messages",()=>"sms:?&body="+enc("Hey — could I grab 30 min this week to pick your brain before I send my stuff in? Want to make sure I aim it right.")],w:"Paste what you actually sent:"},
+  {s:"Before the call: read the agenda once, slowly. The routing questions are the whole game.",a:()=>pbs("referrer_call"),w:"Type OK once you've read it:"},
+  {s:"After the call happens, come back here and log it while it's fresh.",w:"The 3 biggest things you learned (routing, names, timeline):"}],
+ m_pkg:[
+  {s:"Confirm the pieces. Read the checklist — what do you have, what's missing?",a:()=>pbs("package_checklist"),w:"Type what's ready and what's missing:"},
+  {s:"Send it. Tap below — a pre-drafted email opens. Add your contact's address, attach the resume PDF, adjust, send.",a:"Subject: Background + target roles\n\nAs discussed — resume attached. The roles that define my lane are listed below, plus two public articles on the program I built. Realistically I'm probably a senior-shaped hire within that group rather than any single req, but this is the lane.\n\n[paste the four roles + article links]\n\nAppreciate you walking this in.",l:["Open email draft",()=>"mailto:?subject="+enc("Background + target roles")+"&body="+enc("As discussed — resume attached. The roles that define my lane are listed below, plus two public articles on the program I built. Realistically I'm probably a senior-shaped hire within that group rather than any single req, but this is the lane.\n\n[paste the four roles + article links]\n\nAppreciate you walking this in.")],w:"Paste who you sent it to + the first line:"}],
+ m_comp:[
+  {s:"One short note to compliance. Tap, address it, send.",a:"Quick question: am I cleared to reference the publicly-covered impact of our ML program (the corporate article and the trade-press piece) in external conversations and interviews? Want to stay clearly inside the lines.",l:["Open email draft",()=>"mailto:?subject="+enc("Quick compliance question")+"&body="+enc("Quick question: am I cleared to reference the publicly-covered impact of our ML program (the corporate article and the trade-press piece) in external conversations and interviews? Want to stay clearly inside the lines.")],w:"Paste confirmation you sent it:"}],
+ m_link:[
+  {s:"Open LinkedIn → your photo → View profile → pencil icon. Replace your headline with this:",a:()=>PB?"AI Research Leader — industrializing alpha research | built a 20+ person org from zero | 10+ production ML models":"🔒 Unlock playbook first (Today screen).",l:["Open LinkedIn","https://www.linkedin.com/"],w:"Type UPDATED once the headline is live:"},
+  {s:"Now add the two public articles to your Featured section (profile → Add section → Featured → Links).",w:"Type DONE once both links are up:"}],
+ m_recr:[
+  {s:"Open your LinkedIn inbox. Find the best recruiter message. The reply is written — copy, personalize one line, send.",a:()=>pbs("recruiter_reply"),l:["Open LinkedIn messages","https://www.linkedin.com/messaging/"],w:"Paste the reply you sent:"},
+  {s:"Two more. Same script. Volume is the point — every reply is comp intel + a pipeline seed.",a:()=>pbs("recruiter_reply"),l:["Back to messages","https://www.linkedin.com/messaging/"],w:"Paste (or summarize) the other two you sent:"}],
+ m_law:[
+  {s:"Find the lawyer: search, pick one with employment/non-compete practice, executive clients.",l:["Search","https://www.google.com/search?q="+enc("philadelphia employment lawyer non-compete executive review")],w:"Who did you pick? Name + firm:"},
+  {s:"Send the engagement email. Draft's ready — tap, address, send.",a:"I'm a senior executive at an asset manager evaluating a move to a proprietary trading firm. I'd like a review of my employment agreements — non-compete, non-solicit, IP assignment, deferred comp forfeiture terms — and advice on what I can safely discuss in interviews. Do you have availability in the next two weeks?",l:["Open email draft",()=>"mailto:?subject="+enc("Employment agreement review")+"&body="+enc("I'm a senior executive at an asset manager evaluating a move to a proprietary trading firm. I'd like a review of my employment agreements — non-compete, non-solicit, IP assignment, deferred comp forfeiture terms — and advice on what I can safely discuss in interviews. Do you have availability in the next two weeks?")],w:"Paste confirmation you sent it:"}],
+ m_hh:[
+  {s:"Message two quant-specialist headhunters. The ask is written — copy, send to both.",a:()=>pbs("headhunter_ask"),l:["Open LinkedIn messages","https://www.linkedin.com/messaging/"],w:"Paste what you sent + to whom:"},
+  {s:"When answers come back, log them here — this is your negotiation database.",w:"Comp bands you heard (or PENDING):"}],
+ m_proc:[
+  {s:"Find the opening. Tap to search live roles; pick ONE to move on today.",l:["Search live roles",()=>"https://www.google.com/search?q="+enc(PB?.job_search_queries?.[2]||"multistrat hedge fund AI research lead jobs")],w:"Paste the role + link you picked:"},
+  {s:"Move on it NOW — apply or message the recruiter attached to the posting. Script below.",a:()=>pbs("recruiter_reply"),w:"Paste proof (confirmation text / message sent):"}],
+ m_mock:[
+  {s:"Find your sparring partner: an ex-trader mock interviewer.",l:["Search coaches","https://www.google.com/search?q="+enc("mock interview coach ex trader options market maker prepfully igotanoffer")],w:"Who looks best? Name/platform + price:"},
+  {s:"Book it and send the brief — it's written.",a:()=>pbs("mock_setup"),w:"Paste booking confirmation (or date):"}],
+ m_fire:[
+  {s:"Pick the process that gives you your first real at-bat — the firm you care about LEAST goes first. Message them to schedule.",a:"Thanks — I'd love to move forward. I have good availability [days] — happy to do a first conversation whenever works.",w:"Which firm + when is it scheduled? Paste:"}],
+ m_date:[
+  {s:"Nudge for the date. Calibrated, light, written for you — tap and send to your contact.",a:"Hey — checking in on timeline. Anything else I can send over to keep things moving on your side?",l:["Open Messages",()=>"sms:?&body="+enc("Hey — checking in on timeline. Anything else I can send over to keep things moving on your side?")],w:"Paste what you sent + any reply:"}]
+};
+let wz=null,wzStep=0;
+function chauffeur(id){const w=WIZ[id];if(w){wz={id,steps:w};wzStep=0;vWiz();return}
+ if(!S.set.key){tab="coach";nav();vCoach();return}
+ const m=MISSIONS.find(x=>x.id===id);tab="coach";nav();vCoach();
+ send(CHAUF[id]||("Chauffeur me step-by-step through this mission: \""+m.t+"\" — "+m.w))}
+function vWiz(){const st=wz.steps[wzStep],n=wz.steps.length,m=MISSIONS.find(x=>x.id===wz.id);
+ const art=st.a?(typeof st.a==="function"?st.a():st.a):null;
+ const href=st.l?(typeof st.l[1]==="function"?st.l[1]():st.l[1]):null;
+ V.innerHTML=`<div class="meta"><span>🚗 ${m.t}</span><span>${wzStep+1}/${n}</span></div>
+ <div class="bar" style="margin-bottom:14px"><i style="width:${wzStep/n*100}%"></i></div>
+ <div class="card">
+  <div class="q" style="font-size:16px">${st.s}</div>
+  ${art?`<div class="a" id="wart" style="user-select:all">${art.replace(/</g,"&lt;")}</div><button class="btn sec small" onclick="navigator.clipboard.writeText(document.getElementById('wart').innerText);this.textContent='Copied ✓'">Copy</button>`:""}
+  ${href?`<a class="btn" style="margin-top:10px;text-decoration:none;display:block" href="${href}" ${href.startsWith("http")?'target="_blank" rel="noopener"':""}>${st.l[0]} ↗</a>`:""}
+  ${st.w?`<div class="note" style="margin-top:12px"><b>Witness:</b> ${st.w}</div><textarea id="wwit" style="width:100%;height:64px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:14px;margin-top:4px" oninput="document.getElementById('wnext').disabled=this.value.trim().length<2"></textarea>`:""}
+  <button class="btn" id="wnext" style="margin-top:12px" ${st.w?"disabled":""} onclick="wizNext()">${wzStep===n-1?"Finish — witnessed & done":"Next step"}</button>
+ </div>
+ <button class="btn sec small" onclick="go('today')">Pause (come back anytime)</button>`}
+function wizNext(){const st=wz.steps[wzStep];
+ if(st.w){const t=document.getElementById("wwit").value.trim();(S.rcpt[wz.id]=S.rcpt[wz.id]||[]).push({s:wzStep,t,ts:TODAY()})}
+ wzStep++;
+ if(wzStep>=wz.steps.length){const id=wz.id;S.missions[id]=TODAY();S.xp+=40;wz=null;save();
+  V.innerHTML=`<div class="card center flash"><div style="font-size:40px">🚀</div><div class="q">Mission complete — witnessed</div><div class="note">Receipts on file. Odds now <b style="color:var(--blue)">${Math.round(oddsAny()*100)}%</b> · EV banked <b style="color:var(--good)">+${fmt$(evDelta())}</b></div></div><button class="btn" onclick="go('today')">Continue</button>`;return}
+ save();vWiz()}
 const PITCHES=[
 ["30-second pitch","Industrializes alpha research → repeatable process → 20+ team / 10+ production models → researcher first → why SIG (decision science, faster loops) → calibrated derivatives-gap statement.",30],
 ["2-minute pitch","Arc: researcher → bottleneck is process → built the factory. Concrete example. Equities→FI transfer. Why SIG + local. Calibrated self-assessment.",120],
@@ -376,7 +456,7 @@ async function pbUnlock(){
 function unlockCard(){return `<div class="card" style="border-color:var(--blue)"><b>🔓 One-time unlock</b><div class="note" style="margin:4px 0 8px">Your playbook (scripts, answers, negotiation lines) ships encrypted. Enter the passphrase once — after that, everything just works on this device.</div><div class="row"><input type="password" id="pbp" placeholder="passphrase" style="flex:1;margin:0" onkeydown="if(event.key==='Enter')pbUnlock()"><button class="btn small" style="flex:0 0 90px" onclick="pbUnlock()">Unlock</button></div></div>`}
 function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,frzWk:null},
  kc:Object.fromEntries(Object.keys(KC).map(k=>[k,{lv:0,due:null,reps:0}])),
- log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],
+ log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],rcpt:{},
  set:{key:"",par:1,base:600,target:2500,horizon:4,tax:0.42,voice:false}}}
 function load(){try{S=Object.assign(defaults(),JSON.parse(localStorage.el||"{}"));S.set=Object.assign(defaults().set,S.set);S.kc=Object.assign(defaults().kc,S.kc)}catch(e){S=defaults()}
  if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
@@ -463,14 +543,14 @@ function missionCard(){const m=nextMission();
  <div class="q" style="margin:6px 0">${m.t}</div>
  <div class="note">${m.w}</div>
  ${od?`<div class="note" style="color:var(--bad)">Stalling costs ≈ ${fmt$(stallWk())}/week of expected value. No amount of drilling buys this back.</div>`:""}
- <div class="row" style="margin-top:10px"><button class="btn small" onclick="msDone('${m.id}')">Done ✓</button>${m.s&&PB?`<button class="btn sec small" onclick="vScript('${m.s}')">Script</button>`:""}<button class="btn sec small" onclick="vMissions()">All missions</button></div></div>`}
+ <div class="row" style="margin-top:10px"><button class="btn small" style="background:var(--violet)" onclick="chauffeur('${m.id}')">🚗 Chauffeur me</button><button class="btn sec small" onclick="msDone('${m.id}')">Done ✓</button><button class="btn sec small" onclick="vMissions()">All</button></div></div>`}
 function msDone(id){if(!confirm("Really done? The odds model only works if you don't lie to it."))return;
  S.missions[id]=TODAY();S.xp+=40;save();
  V.innerHTML=`<div class="card center flash"><div style="font-size:40px">🚀</div><div class="q">Mission complete</div><div class="note">Odds now <b style="color:var(--blue)">${Math.round(oddsAny()*100)}%</b> · EV banked <b style="color:var(--good)">+${fmt$(evDelta())}</b></div></div><button class="btn" onclick="go('today')">Continue</button>`}
 function vMissions(){const d=daysIn();
  V.innerHTML=`<div class="card"><div class="q">Execution missions</div><div class="note">Day ${d} of the campaign. These move your odds ~2× more than all studying combined — the app will not show you a great number while they stall.</div></div>`+
  MISSIONS.map(m=>{const done=S.missions[m.id],od=!done&&m.by<d;
-  return `<div class="card" ${od?'style="border-color:var(--bad)"':""}><b>${done?"✅ ":od?"⚠️ ":"⬜ "}${m.t}</b> <span class="note">+${Math.round(m.p*100)}pts · target day ${m.by}${done?" · done "+done:""}</span><div class="note" style="margin-top:4px">${m.w}</div>${done?"":`<div class="row" style="margin-top:8px"><button class="btn sec small" onclick="msDone('${m.id}')">Mark done</button>${m.s&&PB?`<button class="btn sec small" onclick="vScript('${m.s}')">Script →</button>`:""}</div>`}</div>`}).join("")+
+  return `<div class="card" ${od?'style="border-color:var(--bad)"':""}><b>${done?"✅ ":od?"⚠️ ":"⬜ "}${m.t}</b> <span class="note">+${Math.round(m.p*100)}pts · target day ${m.by}${done?" · done "+done:""}</span><div class="note" style="margin-top:4px">${m.w}</div>${done?"":`<div class="row" style="margin-top:8px"><button class="btn small" style="background:var(--violet)" onclick="chauffeur('${m.id}')">🚗 Chauffeur</button><button class="btn sec small" onclick="msDone('${m.id}')">Mark done</button>${m.s&&PB?`<button class="btn sec small" onclick="vScript('${m.s}')">Script</button>`:""}</div>`}</div>`}).join("")+
  `${PB?`<button class="btn sec" onclick="vPlaybook()">📖 Playbook — every script & answer</button><div style="height:8px"></div>`:PBC?unlockCard():""}<button class="btn sec small" onclick="go('today')">Home</button>`}
 function vScript(id){const s=(PB?.scripts||[]).find(x=>x.id===id)||(PB?.answers||[]).find(x=>x.id===id);
  if(!s)return vPlaybook();
@@ -620,24 +700,24 @@ let chat=[];
 function coachSys(){
  const dues=Object.keys(KC).filter(due).map(k=>KC[k][0]).slice(0,8);
  const weak=Object.entries(S.kc).filter(([k,m])=>m.lv<=1).map(([k])=>KC[k][0]).slice(0,8);
- return `You are an elite interview coach preparing Dawer for SIG (Susquehanna): quant/ML leader (built Vanguard's investments AI org; DNN driving ~half of systematic equities' excess return on ~$15B AUM), positioning "I industrialize alpha research." Gaps: options/derivatives, post-2020 DL, calibration-game reps, mental-math speed.
+ return `You are an elite interview coach preparing the user for quant-trading-firm interviews. Who they are, their record, positioning, targets and negotiation lines are all in the playbook at the end of this prompt (when unlocked) — treat it as ground truth. Gaps: options/derivatives, post-2020 DL, calibration-game reps, mental-math speed.
 Teach with cognitive science: retrieval first (make him try before explaining), one idea per message, worked example then fade, name misconceptions ("IV as estimator", "delta=P(ITM)", outcome-based reasoning), demand confidence numbers before grading answers, praise calibrated wrongness over lucky overconfidence, connect options ideas to his quant-equities intuitions and flag when they mislead.
 Style: conversational, 2-4 sentences per turn, ONE question at a time, math in words. Be unsentimental about errors — SIG will be.
 Modes on request: DRILL (rapid-fire questions), MOCK (SIG interviewer character; after confident claims ask "would you bet $1,000 at those odds?"; run make-a-market games and punish non-updating), LEARN (socratic), PITCH (critique like a skeptical SIG partner).
 Currently due for review: ${dues.join(", ")||"none"}. Weakest areas: ${weak.join(", ")||"none"}. Default: drill him on due items.
 CRITICAL: knowledge is not his bottleneck — execution is. Undone real-world missions: ${MISSIONS.filter(m=>!S.missions[m.id]).slice(0,3).map(m=>m.t).join("; ")||"none"}. Open EVERY session by asking, in one sentence, when he will do the top undone mission — get a specific day out of him before any drilling. If he dodges twice, call it what it is: avoidance dressed as studying.
-You also have web search: use it to find live job postings (his lane: senior ML/AI research + AI-lead roles at SIG, Citadel, Millennium, Point72, Balyasny, Jane Street, HRT), to check firms and interviewers before calls, and to verify market facts. When listing roles, give title, firm, location, and link, and say which mission it advances.
+You also have web search: use it to find live job postings (lane + target firms are in the playbook's job_search_queries), to check firms and interviewers before calls, and to verify market facts. When listing roles, give title, firm, location, and link, and say which mission it advances.
 ${PB?`HIS PLAYBOOK (use to draft outreach/resumes/answers in HIS voice; adapt, don't invent facts): ${JSON.stringify(PB).slice(0,14000)}`:"No playbook imported yet — for drafting tasks, remind him to import it in Settings."}`}
 function vCoach(){
  if(!S.set.key){V.innerHTML=`<div class="card"><div class="q">Coach needs a key</div><div class="note">One-time: paste an Anthropic API key (console.anthropic.com → API keys). Stored only on this device, sent only to api.anthropic.com. A month of heavy coaching ≈ a few dollars.</div>
  <input type="password" id="ak" placeholder="sk-ant-...">
  <button class="btn" onclick="S.set.key=document.getElementById('ak').value.trim();save();vCoach()">Save key</button></div>`;return}
  V.innerHTML=`<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:4px">
-  ${[["🔎 Find live roles","Search the web for currently open senior ML/AI research and AI-lead roles at SIG, Citadel, Millennium, Point72, Balyasny, Jane Street and HRT. List title, firm, location and link, and tell me which of my missions each advances."],
+  ${[["🔎 Find live roles","Search the web for currently open senior ML/AI research and AI-lead roles at my target and tier-1 firms (use my playbook's job_search_queries). List title, firm, location and link, and tell me which of my missions each advances."],
      ["✉️ Draft outreach","Draft a recruiter reply and a headhunter comp-bands ask from my playbook, personalized and ready to paste."],
      ["📞 Referrer prep","Walk me through my referrer call agenda from the playbook, then role-play as my referrer so I can practice the routing questions."],
-     ["💰 Comp grilling","Role-play a SIG recruiter demanding my comp expectations. Grill me, then grade my deflection against my playbook lines."],
-     ["🎯 Mock attack","Mock interview: attack my ~50% attribution claim and my derivatives gap, one question at a time."]]
+     ["💰 Comp grilling","Role-play a recruiter at my target firm demanding my comp expectations. Grill me, then grade my deflection against my playbook lines."],
+     ["🎯 Mock attack","Mock interview: attack my headline track-record claim and my derivatives gap, one question at a time."]]
    .map(c=>`<button class="chip" style="white-space:nowrap;cursor:pointer" onclick="send(${JSON.stringify(c[1]).replace(/"/g,"&quot;")})">${c[0]}</button>`).join("")}
  </div>
  <div class="chat" id="chat">${chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${m.content.replace(/</g,"&lt;")}</div>`).join("")||`<div class="msg ai">Ready. Tap a chip, or say "drill me", "mock interview", "find me jobs", "draft my reply to this recruiter: …"${PB?"":"<br><br>🔒 Playbook locked — one-time unlock on the Today screen enables drafting in your voice."}</div>`}</div>
@@ -645,7 +725,7 @@ function vCoach(){
  <div class="note"><label><input type="checkbox" ${S.set.voice?"checked":""} onchange="S.set.voice=this.checked;save()"> speak replies aloud</label></div>`;
  const c=document.getElementById("chat");c.scrollTop=c.scrollHeight;window.scrollTo(0,document.body.scrollHeight)}
 async function send(txt){
- const el=document.getElementById("ci");const t=(txt||el.value).trim();if(!t)return;el.value="";
+ const el=document.getElementById("ci");const t=(txt||(el?el.value:"")).trim();if(!t)return;if(el)el.value="";
  chat.push({role:"user",content:t});vCoach();
  chat.push({role:"assistant",content:"…"});vCoach();
  try{
