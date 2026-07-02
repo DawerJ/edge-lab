@@ -200,15 +200,15 @@ const LORE=[
 /* Execution missions — these dominate the odds model by design */
 const MISSIONS=[
  {id:"m_resume",t:"Resolve resume brackets, finalize v2",w:"Process mechanisms, interests line, dates one-liner. This blocks the package.",p:.01,by:3},
- {id:"m_call",t:"Book + do the referrer debrief call",w:"30 min of routing intel beats a week of study. Which group, who decides, comp shape, timeline.",p:.03,by:4},
- {id:"m_pkg",t:"Ship the package to your contact",w:"Resume + tailored letter + bowling lane + article links. Starts the only clock that matters.",p:.05,by:7},
+ {id:"m_call",t:"Book + do the referrer debrief call",w:"30 min of routing intel beats a week of study. Which group, who decides, comp shape, timeline.",p:.03,by:4,s:"referrer_call"},
+ {id:"m_pkg",t:"Ship the package to your contact",w:"Resume + tailored letter + bowling lane + article links. Starts the only clock that matters.",p:.05,by:7,s:"package_checklist"},
  {id:"m_comp",t:"Compliance-check the headline claim",w:"Your best number, confirmed safe — BEFORE someone probes it in a room.",p:.01,by:7},
  {id:"m_link",t:"LinkedIn refresh + articles in Featured",w:"Recruiters and interviewers WILL look. Inbound volume is market data.",p:.01,by:7},
- {id:"m_recr",t:"Reply to 3 recruiter inbounds",w:"Use the script. Free comp calibration + pipeline seeds.",p:.02,by:7},
+ {id:"m_recr",t:"Reply to 3 recruiter inbounds",w:"Use the script. Free comp calibration + pipeline seeds.",p:.02,by:7,s:"recruiter_reply"},
  {id:"m_law",t:"Lawyer reads non-compete / IP docs",w:"A garden-leave surprise mid-process kills 'rapid'.",p:.01,by:14},
- {id:"m_hh",t:"Live comp bands from 2 headhunters",w:"'What are AI-lead mandates paying at multistrats?' — your negotiation database.",p:.01,by:14},
+ {id:"m_hh",t:"Live comp bands from 2 headhunters",w:"'What are AI-lead mandates paying at multistrats?' — your negotiation database.",p:.01,by:14,s:"headhunter_ask"},
  {id:"m_proc",t:"First parallel process live (Tier 1)",w:"Citadel / Millennium / P72 / Balyasny. Your BATNA and your rehearsal stage.",p:.03,by:21},
- {id:"m_mock",t:"Paid mock with an ex-trader",w:"First contact with a hostile calibration-prober must not be the real interview.",p:.03,by:21},
+ {id:"m_mock",t:"Paid mock with an ex-trader",w:"First contact with a hostile calibration-prober must not be the real interview.",p:.03,by:21,s:"mock_setup"},
  {id:"m_fire",t:"Live-fire interview at any firm",w:"The only true eval. Burn the rust where it doesn't count.",p:.03,by:28},
  {id:"m_date",t:"SIG interview on the calendar",w:"The forcing function. Everything compounds behind a date.",p:.04,by:35}
 ];
@@ -359,6 +359,8 @@ const DIAG={
 const TODAY=()=>new Date().toISOString().slice(0,10);
 const DAY=86400000;
 let S;
+let PB=null;try{PB=JSON.parse(localStorage.el_pb||"null")}catch(e){}
+function pbSave(txt){try{PB=JSON.parse(txt);localStorage.el_pb=JSON.stringify(PB);return true}catch(e){alert("Not valid JSON: "+e.message);return false}}
 function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,frzWk:null},
  kc:Object.fromEntries(Object.keys(KC).map(k=>[k,{lv:0,due:null,reps:0}])),
  log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],
@@ -447,15 +449,25 @@ function missionCard(){const m=nextMission();
  <div class="q" style="margin:6px 0">${m.t}</div>
  <div class="note">${m.w}</div>
  ${od?`<div class="note" style="color:var(--bad)">Stalling costs ≈ ${fmt$(stallWk())}/week of expected value. No amount of drilling buys this back.</div>`:""}
- <div class="row" style="margin-top:10px"><button class="btn small" onclick="msDone('${m.id}')">Done ✓</button><button class="btn sec small" onclick="vMissions()">All missions</button></div></div>`}
+ <div class="row" style="margin-top:10px"><button class="btn small" onclick="msDone('${m.id}')">Done ✓</button>${m.s&&PB?`<button class="btn sec small" onclick="vScript('${m.s}')">Script</button>`:""}<button class="btn sec small" onclick="vMissions()">All missions</button></div></div>`}
 function msDone(id){if(!confirm("Really done? The odds model only works if you don't lie to it."))return;
  S.missions[id]=TODAY();S.xp+=40;save();
  V.innerHTML=`<div class="card center flash"><div style="font-size:40px">🚀</div><div class="q">Mission complete</div><div class="note">Odds now <b style="color:var(--blue)">${Math.round(oddsAny()*100)}%</b> · EV banked <b style="color:var(--good)">+${fmt$(evDelta())}</b></div></div><button class="btn" onclick="go('today')">Continue</button>`}
 function vMissions(){const d=daysIn();
  V.innerHTML=`<div class="card"><div class="q">Execution missions</div><div class="note">Day ${d} of the campaign. These move your odds ~2× more than all studying combined — the app will not show you a great number while they stall.</div></div>`+
  MISSIONS.map(m=>{const done=S.missions[m.id],od=!done&&m.by<d;
-  return `<div class="card" ${od?'style="border-color:var(--bad)"':""}><b>${done?"✅ ":od?"⚠️ ":"⬜ "}${m.t}</b> <span class="note">+${Math.round(m.p*100)}pts · target day ${m.by}${done?" · done "+done:""}</span><div class="note" style="margin-top:4px">${m.w}</div>${done?"":`<button class="btn sec small" style="margin-top:8px" onclick="msDone('${m.id}')">Mark done</button>`}</div>`}).join("")+
- `<button class="btn sec small" onclick="go('today')">Home</button>`}
+  return `<div class="card" ${od?'style="border-color:var(--bad)"':""}><b>${done?"✅ ":od?"⚠️ ":"⬜ "}${m.t}</b> <span class="note">+${Math.round(m.p*100)}pts · target day ${m.by}${done?" · done "+done:""}</span><div class="note" style="margin-top:4px">${m.w}</div>${done?"":`<div class="row" style="margin-top:8px"><button class="btn sec small" onclick="msDone('${m.id}')">Mark done</button>${m.s&&PB?`<button class="btn sec small" onclick="vScript('${m.s}')">Script →</button>`:""}</div>`}</div>`}).join("")+
+ `${PB?`<button class="btn sec" onclick="vPlaybook()">📖 Playbook — every script & answer</button><div style="height:8px"></div>`:`<div class="card"><div class="note">📖 Import your playbook (Me → Settings) to get word-for-word scripts on every mission and a Coach that drafts outreach in your voice.</div></div>`}<button class="btn sec small" onclick="go('today')">Home</button>`}
+function vScript(id){const s=(PB?.scripts||[]).find(x=>x.id===id)||(PB?.answers||[]).find(x=>x.id===id);
+ if(!s)return vPlaybook();
+ V.innerHTML=`<div class="card"><div class="q">${s.title||s.q}</div><div class="a" style="user-select:all">${(s.body||s.a).replace(/</g,"&lt;")}</div>
+ <button class="btn sec small" onclick="navigator.clipboard.writeText(document.querySelector('.a').innerText);this.textContent='Copied ✓'">Copy</button></div>
+ <button class="btn sec small" onclick="vMissions()">Back</button>`}
+function vPlaybook(){if(!PB)return vSet();
+ V.innerHTML=`<div class="card"><div class="q">📖 Playbook</div><div class="note">Tap anything to open. Lives only on this device.</div></div>
+ <h2>Scripts — what to say</h2><div class="card" style="padding:2px 14px">${(PB.scripts||[]).map(s=>`<div class="lesson" onclick="vScript('${s.id}')"><div class="ttl" style="font-size:14px">${s.title}</div><span class="prog">›</span></div>`).join("")}</div>
+ <h2>Answers — tough questions</h2><div class="card" style="padding:2px 14px">${(PB.answers||[]).map(s=>`<div class="lesson" onclick="vScript('${s.id}')"><div class="ttl" style="font-size:14px">${s.q}</div><span class="prog">›</span></div>`).join("")}</div>
+ <button class="btn sec small" onclick="go('today')">Home</button>`}
 
 /* ---------- LEARN ---------- */
 function vLearn(){
@@ -599,12 +611,22 @@ Teach with cognitive science: retrieval first (make him try before explaining), 
 Style: conversational, 2-4 sentences per turn, ONE question at a time, math in words. Be unsentimental about errors — SIG will be.
 Modes on request: DRILL (rapid-fire questions), MOCK (SIG interviewer character; after confident claims ask "would you bet $1,000 at those odds?"; run make-a-market games and punish non-updating), LEARN (socratic), PITCH (critique like a skeptical SIG partner).
 Currently due for review: ${dues.join(", ")||"none"}. Weakest areas: ${weak.join(", ")||"none"}. Default: drill him on due items.
-CRITICAL: knowledge is not his bottleneck — execution is. Undone real-world missions: ${MISSIONS.filter(m=>!S.missions[m.id]).slice(0,3).map(m=>m.t).join("; ")||"none"}. Open EVERY session by asking, in one sentence, when he will do the top undone mission — get a specific day out of him before any drilling. If he dodges twice, call it what it is: avoidance dressed as studying.`}
+CRITICAL: knowledge is not his bottleneck — execution is. Undone real-world missions: ${MISSIONS.filter(m=>!S.missions[m.id]).slice(0,3).map(m=>m.t).join("; ")||"none"}. Open EVERY session by asking, in one sentence, when he will do the top undone mission — get a specific day out of him before any drilling. If he dodges twice, call it what it is: avoidance dressed as studying.
+You also have web search: use it to find live job postings (his lane: senior ML/AI research + AI-lead roles at SIG, Citadel, Millennium, Point72, Balyasny, Jane Street, HRT), to check firms and interviewers before calls, and to verify market facts. When listing roles, give title, firm, location, and link, and say which mission it advances.
+${PB?`HIS PLAYBOOK (use to draft outreach/resumes/answers in HIS voice; adapt, don't invent facts): ${JSON.stringify(PB).slice(0,14000)}`:"No playbook imported yet — for drafting tasks, remind him to import it in Settings."}`}
 function vCoach(){
  if(!S.set.key){V.innerHTML=`<div class="card"><div class="q">Coach needs a key</div><div class="note">One-time: paste an Anthropic API key (console.anthropic.com → API keys). Stored only on this device, sent only to api.anthropic.com. A month of heavy coaching ≈ a few dollars.</div>
  <input type="password" id="ak" placeholder="sk-ant-...">
  <button class="btn" onclick="S.set.key=document.getElementById('ak').value.trim();save();vCoach()">Save key</button></div>`;return}
- V.innerHTML=`<div class="chat" id="chat">${chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${m.content.replace(/</g,"&lt;")}</div>`).join("")||'<div class="msg ai">Ready. Say "drill me", "mock interview", "teach me gamma", or "pitch mode".</div>'}</div>
+ V.innerHTML=`<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:4px">
+  ${[["🔎 Find live roles","Search the web for currently open senior ML/AI research and AI-lead roles at SIG, Citadel, Millennium, Point72, Balyasny, Jane Street and HRT. List title, firm, location and link, and tell me which of my missions each advances."],
+     ["✉️ Draft outreach","Draft a recruiter reply and a headhunter comp-bands ask from my playbook, personalized and ready to paste."],
+     ["📞 Referrer prep","Walk me through my referrer call agenda from the playbook, then role-play as my referrer so I can practice the routing questions."],
+     ["💰 Comp grilling","Role-play a SIG recruiter demanding my comp expectations. Grill me, then grade my deflection against my playbook lines."],
+     ["🎯 Mock attack","Mock interview: attack my ~50% attribution claim and my derivatives gap, one question at a time."]]
+   .map(c=>`<button class="chip" style="white-space:nowrap;cursor:pointer" onclick="send(${JSON.stringify(c[1]).replace(/"/g,"&quot;")})">${c[0]}</button>`).join("")}
+ </div>
+ <div class="chat" id="chat">${chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${m.content.replace(/</g,"&lt;")}</div>`).join("")||`<div class="msg ai">Ready. Tap a chip, or say "drill me", "mock interview", "find me jobs", "draft my reply to this recruiter: …"${PB?"":"<br><br>⚠️ No playbook imported — Settings → paste playbook.json to unlock personalized drafting."}</div>`}</div>
  <div class="chatin"><textarea id="ci" placeholder="Message…"></textarea>${window.webkitSpeechRecognition||window.SpeechRecognition?`<button onclick="mic()" id="micb">🎤</button>`:""}<button onclick="send()">➤</button></div>
  <div class="note"><label><input type="checkbox" ${S.set.voice?"checked":""} onchange="S.set.voice=this.checked;save()"> speak replies aloud</label></div>`;
  const c=document.getElementById("chat");c.scrollTop=c.scrollHeight;window.scrollTo(0,document.body.scrollHeight)}
@@ -613,12 +635,15 @@ async function send(txt){
  chat.push({role:"user",content:t});vCoach();
  chat.push({role:"assistant",content:"…"});vCoach();
  try{
-  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{
+  const call=msgs=>fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{
    "content-type":"application/json","x-api-key":S.set.key,"anthropic-version":"2023-06-01",
    "anthropic-dangerous-direct-browser-access":"true"},
-   body:JSON.stringify({model:"claude-opus-4-8",max_tokens:600,system:coachSys(),
-    messages:chat.slice(0,-1).slice(-24)})});
-  const j=await res.json();
+   body:JSON.stringify({model:"claude-opus-4-8",max_tokens:1500,system:coachSys(),
+    tools:[{type:"web_search_20260209",name:"web_search"}],
+    messages:msgs})}).then(r=>r.json());
+  let msgs=chat.slice(0,-1).slice(-24).map(m=>({role:m.role,content:m.content}));
+  let j=await call(msgs),hops=0;
+  while(j.stop_reason==="pause_turn"&&hops<4){msgs=[...msgs,{role:"assistant",content:j.content}];j=await call(msgs);hops++}
   const out=j.content?j.content.filter(b=>b.type==="text").map(b=>b.text).join(""):(j.error?.message||"error");
   chat[chat.length-1].content=out;vCoach();
   if(S.set.voice&&window.speechSynthesis){const u=new SpeechSynthesisUtterance(out);u.rate=1.05;speechSynthesis.speak(u)}
@@ -657,6 +682,9 @@ function vMe(){
 function vSet(){
  V.innerHTML=`<div class="card"><div class="q">Settings</div>
  <label>Anthropic API key (coach)</label><input type="password" id="s_key" value="${S.set.key}">
+ <label>Playbook ${PB?'<span style="color:var(--good)">✓ imported ('+((PB.scripts||[]).length)+' scripts, '+((PB.answers||[]).length)+' answers)</span>':"— paste playbook.json contents (one time, stays on device)"}</label>
+ <textarea id="s_pb" style="width:100%;height:70px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:12px;margin:4px 0 6px" placeholder='{"profile":..., "scripts":[...]}'></textarea>
+ <button class="btn sec small" style="margin-bottom:12px" onclick="const t=document.getElementById('s_pb').value.trim();if(t&&pbSave(t))vSet()">Import playbook</button>
  <label>Pipeline — live processes (drives odds; beats the number below)</label>
  <div style="margin:4px 0 8px">${S.pipe.map((f,i)=>`<span class="chip">${f} <span style="color:var(--bad);cursor:pointer" onclick="S.pipe.splice(${i},1);save();vSet()">✕</span></span>`).join("")||'<span class="note">none yet — that IS the gap</span>'}</div>
  <input type="text" id="s_pf" placeholder="Add firm (e.g. Millennium)">
