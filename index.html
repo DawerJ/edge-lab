@@ -361,6 +361,19 @@ const DAY=86400000;
 let S;
 let PB=null;try{PB=JSON.parse(localStorage.el_pb||"null")}catch(e){}
 function pbSave(txt){try{PB=JSON.parse(txt);localStorage.el_pb=JSON.stringify(PB);return true}catch(e){alert("Not valid JSON: "+e.message);return false}}
+let PBC=null;
+fetch("pb.enc").then(r=>r.ok?r.text():null).then(t=>{PBC=t?t.trim():null;if(!PB&&PBC)render()}).catch(()=>{});
+async function pbUnlock(){
+ const pass=(document.getElementById("pbp")||{}).value?.trim();if(!pass)return;
+ try{
+  const raw=Uint8Array.from(atob(PBC),c=>c.charCodeAt(0));
+  const salt=raw.slice(0,16),iv=raw.slice(16,28),ct=raw.slice(28);
+  const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
+  if(pbSave(new TextDecoder().decode(pt)))render();
+ }catch(e){alert("Wrong passphrase — try again.")}}
+function unlockCard(){return `<div class="card" style="border-color:var(--blue)"><b>🔓 One-time unlock</b><div class="note" style="margin:4px 0 8px">Your playbook (scripts, answers, negotiation lines) ships encrypted. Enter the passphrase once — after that, everything just works on this device.</div><div class="row"><input type="password" id="pbp" placeholder="passphrase" style="flex:1;margin:0" onkeydown="if(event.key==='Enter')pbUnlock()"><button class="btn small" style="flex:0 0 90px" onclick="pbUnlock()">Unlock</button></div></div>`}
 function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,frzWk:null},
  kc:Object.fromEntries(Object.keys(KC).map(k=>[k,{lv:0,due:null,reps:0}])),
  log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],
@@ -426,6 +439,7 @@ function vToday(){
   <div class="tile"><div class="lab">Offer odds*</div><div class="val" style="color:var(--blue)">${p}%</div><div class="sub">SIG alone: ${ps}%</div></div>
   <div class="tile"><div class="lab">EV banked*</div><div class="val" style="color:var(--good)">+${fmt$(evDelta())}</div><div class="sub">since day one</div></div>
  </div>
+ ${(!PB&&PBC)?unlockCard():""}
  ${missionCard()}
  <div class="card">
   <h2 style="margin-top:0">Today's quests ${questsDone()?"✅":""}</h2>
@@ -457,7 +471,7 @@ function vMissions(){const d=daysIn();
  V.innerHTML=`<div class="card"><div class="q">Execution missions</div><div class="note">Day ${d} of the campaign. These move your odds ~2× more than all studying combined — the app will not show you a great number while they stall.</div></div>`+
  MISSIONS.map(m=>{const done=S.missions[m.id],od=!done&&m.by<d;
   return `<div class="card" ${od?'style="border-color:var(--bad)"':""}><b>${done?"✅ ":od?"⚠️ ":"⬜ "}${m.t}</b> <span class="note">+${Math.round(m.p*100)}pts · target day ${m.by}${done?" · done "+done:""}</span><div class="note" style="margin-top:4px">${m.w}</div>${done?"":`<div class="row" style="margin-top:8px"><button class="btn sec small" onclick="msDone('${m.id}')">Mark done</button>${m.s&&PB?`<button class="btn sec small" onclick="vScript('${m.s}')">Script →</button>`:""}</div>`}</div>`}).join("")+
- `${PB?`<button class="btn sec" onclick="vPlaybook()">📖 Playbook — every script & answer</button><div style="height:8px"></div>`:`<div class="card"><div class="note">📖 Import your playbook (Me → Settings) to get word-for-word scripts on every mission and a Coach that drafts outreach in your voice.</div></div>`}<button class="btn sec small" onclick="go('today')">Home</button>`}
+ `${PB?`<button class="btn sec" onclick="vPlaybook()">📖 Playbook — every script & answer</button><div style="height:8px"></div>`:PBC?unlockCard():""}<button class="btn sec small" onclick="go('today')">Home</button>`}
 function vScript(id){const s=(PB?.scripts||[]).find(x=>x.id===id)||(PB?.answers||[]).find(x=>x.id===id);
  if(!s)return vPlaybook();
  V.innerHTML=`<div class="card"><div class="q">${s.title||s.q}</div><div class="a" style="user-select:all">${(s.body||s.a).replace(/</g,"&lt;")}</div>
@@ -626,7 +640,7 @@ function vCoach(){
      ["🎯 Mock attack","Mock interview: attack my ~50% attribution claim and my derivatives gap, one question at a time."]]
    .map(c=>`<button class="chip" style="white-space:nowrap;cursor:pointer" onclick="send(${JSON.stringify(c[1]).replace(/"/g,"&quot;")})">${c[0]}</button>`).join("")}
  </div>
- <div class="chat" id="chat">${chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${m.content.replace(/</g,"&lt;")}</div>`).join("")||`<div class="msg ai">Ready. Tap a chip, or say "drill me", "mock interview", "find me jobs", "draft my reply to this recruiter: …"${PB?"":"<br><br>⚠️ No playbook imported — Settings → paste playbook.json to unlock personalized drafting."}</div>`}</div>
+ <div class="chat" id="chat">${chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${m.content.replace(/</g,"&lt;")}</div>`).join("")||`<div class="msg ai">Ready. Tap a chip, or say "drill me", "mock interview", "find me jobs", "draft my reply to this recruiter: …"${PB?"":"<br><br>🔒 Playbook locked — one-time unlock on the Today screen enables drafting in your voice."}</div>`}</div>
  <div class="chatin"><textarea id="ci" placeholder="Message…"></textarea>${window.webkitSpeechRecognition||window.SpeechRecognition?`<button onclick="mic()" id="micb">🎤</button>`:""}<button onclick="send()">➤</button></div>
  <div class="note"><label><input type="checkbox" ${S.set.voice?"checked":""} onchange="S.set.voice=this.checked;save()"> speak replies aloud</label></div>`;
  const c=document.getElementById("chat");c.scrollTop=c.scrollHeight;window.scrollTo(0,document.body.scrollHeight)}
