@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0d0d0d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>EdgeLab</title>
+<style>
+:root{
+  --page:#0d0d0d; --surface:#1a1a19; --surface2:#232322;
+  --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --border:rgba(255,255,255,.10);
+  --blue:#3987e5; --blue-deep:#184f95; --good:#0ca30c; --warn:#fab219; --bad:#d03b3b; --violet:#9085e9; --aqua:#199e70;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--page);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+header h1{font-size:19px;letter-spacing:.5px}
+header .hstats{display:flex;gap:12px;font-size:13px;color:var(--ink2);align-items:center}
+main{padding:8px 14px 18px;max-width:560px;margin:0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;border:none;color:var(--muted);font-size:11px;padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav button .ico{font-size:20px;line-height:1}
+nav button.on{color:var(--blue)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.tilegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.tile .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.tile .val{font-size:24px;font-weight:650;margin-top:2px}
+.tile .sub{font-size:12px;color:var(--ink2);margin-top:2px}
+.btn{display:block;width:100%;background:var(--blue);color:#fff;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;text-align:center}
+.btn.sec{background:var(--surface2);color:var(--ink);border:1px solid var(--border)}
+.btn.small{padding:9px;font-size:14px;border-radius:10px}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:8px}
+.row .btn{flex:1}
+h2{font-size:15px;color:var(--ink2);margin:14px 0 8px;font-weight:600}
+.q{font-size:17px;font-weight:600;margin-bottom:10px;white-space:pre-wrap}
+.a{background:var(--surface2);border-radius:10px;padding:12px;font-size:15px;color:var(--ink2);white-space:pre-wrap;margin:10px 0}
+.meta{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
+.bar{height:8px;background:var(--grid);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:4px}
+.kcrow{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13px}
+.kcrow .nm{width:120px;color:var(--ink2)}
+.kcrow .bar{flex:1}
+.kcrow .pc{width:38px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--ink2);margin:2px 4px 2px 0}
+.ring{width:88px;height:88px}
+.quest{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--grid);font-size:14px}
+.quest:last-child{border-bottom:none}
+.quest .st{margin-left:auto;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.quest.done{color:var(--good)}
+.quest.done .st{color:var(--good)}
+.flash{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.94)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
+.crit{color:var(--warn);font-weight:700}
+.lesson{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--grid);cursor:pointer}
+.lesson:last-child{border:none}
+.lesson .ttl{font-size:15px;font-weight:600}
+.lesson .sub{font-size:12px;color:var(--muted)}
+.lesson .done{margin-left:auto;color:var(--good)}
+.lesson .prog{margin-left:auto;color:var(--muted);font-size:12px}
+.chunk{font-size:16px;line-height:1.55;margin:12px 0;white-space:pre-wrap}
+.chunk b{color:var(--blue)}
+.diagram{margin:10px 0;background:var(--surface2);border-radius:10px;padding:8px}
+.diagram svg{width:100%;height:auto;display:block}
+.dcap{font-size:12px;color:var(--muted);text-align:center;padding:4px 6px 2px}
+.confrow{display:flex;gap:6px;margin:10px 0}
+.confrow button{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--ink2);border-radius:10px;padding:10px 0;font-size:14px;cursor:pointer}
+.confrow button.on{background:var(--blue-deep);color:#fff;border-color:var(--blue)}
+.mc button{display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:12px;font-size:15px;margin:6px 0;cursor:pointer}
+.mc button.right{border-color:var(--good);color:var(--good)}
+.mc button.wrong{border-color:var(--bad);color:var(--bad)}
+.spr-num{font-size:34px;font-weight:700;text-align:center;margin:16px 0;font-variant-numeric:tabular-nums}
+.spr-in{width:100%;font-size:26px;text-align:center;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:10px}
+.timer{font-size:14px;color:var(--warn);text-align:center;font-variant-numeric:tabular-nums}
+.chat{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.msg{max-width:88%;padding:10px 12px;border-radius:14px;font-size:15px;white-space:pre-wrap}
+.msg.me{align-self:flex-end;background:var(--blue-deep)}
+.msg.ai{align-self:flex-start;background:var(--surface2)}
+.chatin{display:flex;gap:6px}
+.chatin textarea{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:12px;padding:10px;font-size:15px;resize:none;height:44px}
+.chatin button{width:48px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-size:18px;cursor:pointer}
+input[type=text],input[type=password],input[type=number]{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:10px;font-size:15px;margin:4px 0 10px}
+label{font-size:13px;color:var(--muted)}
+.spark{width:100%;height:44px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.lore{border-left:3px solid var(--warn);padding-left:10px;margin:10px 0;font-size:14px;color:var(--ink2)}
+.center{text-align:center}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ EdgeLab</h1>
+  <div class="hstats"><span id="hstreak">🔥 0</span><span id="hev" title="motivational EV model">+$0 EV</span></div>
+</header>
+<main id="view"></main>
+<nav id="nav"></nav>
+<script>
+"use strict";
+/* ============================== DATA ============================== */
+const KC = {
+ OPT1:["Payoffs & parity","OPT"],OPT3:["BSM as replication","OPT"],OPT4:["0.4·S·σ√T mental math","OPT"],
+ OPT5:["Delta","OPT"],OPT6:["Gamma","OPT"],OPT7:["Theta & tradeoff","OPT"],OPT8:["P&L identity","OPT"],
+ OPT9:["Vega & term split","OPT"],OPT10:["Skew mechanisms","OPT"],OPT11:["Surface dynamics","OPT"],
+ OPT12:["Variance premium","OPT"],OPT13:["MM economics","OPT"],OPT14:["Pin/assignment risk","OPT"],OPT15:["0DTE","OPT"],
+ BET1:["EV speed","BET"],BET2:["Kelly sizing","BET"],BET3:["Calibration","BET"],BET4:["Make-a-market","BET"],
+ BET5:["Bayes speed","BET"],BET6:["Decision vs outcome","BET"],
+ DL1:["Attention/transformers","DL"],DL2:["LLM pipeline","DL"],DL3:["Scaling laws","DL"],DL4:["Efficiency stack","DL"],
+ DL5:["Reasoning models","DL"],DL6:["Diffusion","DL"],DL7:["Agents & evals","DL"],DL9:["LLMs in finance","DL"],
+ SIG1:["Firm & culture","SIG"],SIG2:["Interview style","SIG"],
+ PIT1:["30-sec pitch","PIT"],PIT4:["Gap answer","PIT"],PIT5:["Attribution defense","PIT"]
+};
+const DOMW = {OPT:.35,BET:.25,PIT:.15,DL:.15,SIG:.10};
+const LVL_IVL=[0,1,2,5,10,21];
+
+/* Drills: [kc, question, answer, choices?, correctIdx?] */
+const DRILLS=[
+["OPT1","State put–call parity. What does it force to be equal for same-strike call & put?","C − P = S·e⁻ᵠᵀ − K·e⁻ʳᵀ. Not a model — an arbitrage constraint. Same K,T call and put must have identical implied vol, gamma, vega, theta."],
+["OPT1","Stock $100, 1y call (K=100) costs $10. Rates≈0, no dividends. Price the put.","≈$10. Parity: P = C − S + K = 10 − 100 + 100."],
+["OPT1","When is early exercise of an American option ever right?","Only about carry: calls just before a dividend that exceeds remaining time value; puts when interest on strike beats time value. Never a call on a non-dividend stock."],
+["OPT3","Name 3 BSM assumptions and how each fails.","Continuous frictionless hedging (discrete, costs); constant vol (vol clusters, is stochastic → smile); lognormal returns (fat tails, jumps → skew)."],
+["OPT3","Why is the BSM price the cost of a hedging strategy, not a forecast?","Delta-hedging replicates the option's payoff; the premium is the cost of running that replication. Direction cancels — only realized vs implied vol matters."],
+["OPT4","1-year ATM option, S=$100, σ=20%. Price ≈ ?","≈ 0.4·S·σ√T = 0.4·100·0.2 = $8."],
+["OPT4","1-month straddle on a $50 stock costs $3. What move is the market implying?","Straddle ≈ 0.8·S·σ√T ≈ expected absolute move → ~$3 ≈ 6% move over the month (~1σ)."],
+["OPT5","Give delta's two interpretations, and which is primary for a market maker.","(1) Hedge ratio — primary; (2) ≈ probability of finishing ITM (approximate, distinct concept — differs under skew/drift)."],
+["OPT5","ATM call delta ≈ ?","0.5",["0.25","0.5","0.75","1.0"],1],
+["OPT6","Why does a delta-hedged LONG gamma position make money when spot moves?","Delta grows as spot rises, shrinks as it falls — re-hedging mechanically sells high and buys low. Convexity converts movement into P&L."],
+["OPT6","You're short gamma and the market gaps. What does your hedging look like?","Chasing: buying into rallies, selling into selloffs — locking in losses. That's why short gamma 'picks up pennies'."],
+["OPT7","Long straddle: theta sign?","Negative — you pay rent for owning convexity.",["Positive","Negative","Zero","Depends on skew"],1],
+["OPT7","The gamma–theta tradeoff in one sentence.","Long options: pay theta to own convexity; short options: collect theta but sold convexity — theta is the rent on gamma."],
+["OPT8","Write the daily delta-hedged P&L identity.","P&L ≈ ½·Γ·S²·(σ²realized − σ²implied)·dt. Move more than implied → long gamma wins; less → theta wins."],
+["OPT8","IV is 16%. Roughly what daily move breaks even?","16/√252 ≈ 1% per day (the '16 rule': annual vol ÷ 16 ≈ daily 1σ)."],
+["OPT8","Long delta-hedged straddle; stock doesn't move all week. P&L and why?","Lose ≈ a week of theta: realized (0) < implied, so ½ΓS²(σr²−σi²) is negative. You paid for movement that never came."],
+["OPT9","Gamma vs vega: what is each exposed to?","Gamma → REALIZED vol (actual movement, short-dated). Vega → IMPLIED vol (the traded price of vol, long-dated). Distinct risks, hedged with different instruments."],
+["OPT9","A short-dated ATM option is dominated by…","gamma/theta",["vega","gamma/theta","rho","carry"],1],
+["OPT10","Give 3 distinct mechanisms behind index put skew.","(1) Crash-protection demand; (2) leverage effect — vol rises as prices fall; (3) jump risk — returns aren't lognormal. Post-1987 phenomenon."],
+["OPT11","Sticky strike vs sticky delta?","Two hypotheses for how the smile moves with spot: IV fixed per strike (sticky strike) vs fixed per moneyness (sticky delta). Regime-dependent; neither always holds."],
+["OPT12","What is the variance risk premium and why not just short vol forever?","Implied > subsequent realized on average — sellers get paid for crash insurance. Shorting it earns pennies before the steamroller: rare huge losses eat the premium."],
+["OPT13","A market maker's edge equation, in words.","Edge = spread capture − adverse selection − hedging costs − inventory risk. Quoting is a bet the flow is uninformed."],
+["OPT13","Someone lifts your offer aggressively, twice. What do you do and why?","Move the market up and/or widen. Their willingness to trade is information — assume adverse selection until proven otherwise."],
+["OPT14","What is pin risk?","Short an ATM option at expiry: you don't know if you'll be assigned, so you don't know tomorrow's delta. Small spot moves flip your hedge needs violently."],
+["OPT15","What did 0DTE do to the SPX options market, and why is it 'ML-shaped'?","Daily expiries now ~half of SPX volume. Short end became a high-frequency market: the problem shifts from forecasting vol to predicting the next hours' realized move and flow toxicity — supervised-learning-shaped with fast feedback."],
+["BET1","A die pays its face value. Fair price?","$3.50 — mean of 1..6."],
+["BET1","Die pays face value, but you may reroll once. Price and strategy?","Reroll on 1–3. EV = ½(5) + ½(3.5) = $4.25. Option value: keep the good, redraw the bad."],
+["BET1","Expected value of the MAX of two dice?","P(max=k)=(2k−1)/36 → EV = 161/36 ≈ 4.47."],
+["BET1","Expected number of rolls to see a 6?","6 — geometric with p=1/6."],
+["BET1","P(sum of two dice = 7)?","1/6",["1/6","1/8","1/12","5/36"],0],
+["BET1","Stick broken at two uniform random points. P(pieces form a triangle)?","1/4."],
+["BET1","How many people for >50% shared birthday?","23."],
+["BET1","Red/black card game: draw from a full deck, +$1 red −$1 black, stop anytime. Worth anything?","Yes, ~$2.6 with optimal play. Playing to the end guarantees $0, so the stopping option can only add value: stop when your lead beats the option value of continuing."],
+["BET5","Bag of 1,000 coins, one double-headed. A coin flips 10 heads straight. P(it's the double-header)?","Bayes: 1024/(1024+999) ≈ 50.6%. Even 10 heads only gets you to a coin flip — base rates dominate."],
+["BET5","Monty Hall: switch or stay, and the one-line why?","Switch — 2/3. Your first pick was wrong 2/3 of the time, and the host's reveal concentrates that probability on the other door."],
+["BET2","60/40 coin, even money, $1,000 bankroll. Kelly bet? Why bet less in practice?","f* = 2p−1 = 20% ($200). Fractional Kelly because your edge estimate has error and full Kelly is violently volatile."],
+["BET2","General Kelly formula for odds b:1?","f* = (bp − q)/b = edge/odds. It maximizes long-run log wealth."],
+["BET4","Make me a market on the number of heads in 100 coin flips.","Mean 50, SD = √(100·¼) = 5. Quote ~49/51; know ±10 is 2σ. Width should reflect YOUR uncertainty — here it's known, so tight."],
+["BET4","You quote 6.9/7.1 on the sum of two dice. They buy at 7.1 twice. Now what?","Update up (e.g. 7.0/7.2) or widen. Never dig in: being traded against is information. Adverse selection in miniature."],
+["BET6","Give an example separating decision quality from outcome quality.","Betting $100 at even money on a 60/40 coin and losing: good decision, bad outcome. Judging by outcomes alone teaches the wrong lessons — SIG grades the process."],
+["BET3","When an interviewer asks 'would you bet $1,000 at those odds?' what are they testing?","Whether your stated confidence is a real, calibrated probability you'd accept consequences on — consistency between words and action. Restate odds you'd actually take."],
+["DL1","Attention in one breath — and why is it O(n²)?","softmax(QKᵀ/√d)·V: every token queries every other token and routes information by relevance. All-pairs comparison → quadratic in context length; the constraint driving half of architecture research."],
+["DL1","Why do transformers need positional information, and what's the modern default?","Self-attention is permutation-equivariant — order is invisible without it. Modern default: RoPE (rotary position embeddings)."],
+["DL2","The modern LLM training pipeline, three stages.","Pretraining (next-token, web scale) → supervised fine-tuning → preference optimization (RLHF via PPO, now often DPO). That last stage is why models became assistants."],
+["DL2","DPO is a simpler replacement for which stage?","RLHF preference stage",["Pretraining","SFT","RLHF preference stage","Tokenization"],2],
+["DL3","Tell the scaling-laws story: Kaplan → Chinchilla → today.","Kaplan 2020: loss falls as a power law in compute/params/data. Chinchilla 2022: models were undertrained (~20 tokens/param optimal). Post-2023: over-train small models past that, because INFERENCE cost dominates. It's economics, not physics."],
+["DL4","LoRA: what and why?","Low-rank adapter matrices on frozen weights — fine-tune ~1% of params for near-full quality. The workhorse of applied teams: cheap, swappable, stackable."],
+["DL4","Why does long context cost memory at inference?","KV cache: every past token's keys/values are stored per layer per head. Grows linearly with context — that's the RAM bill; GQA/MQA and quantization attack it."],
+["DL5","What are reasoning models, and why did DeepSeek-R1 matter?","RL on verifiable rewards teaches models to think longer on hard problems — a second scaling axis (test-time compute). R1: open recipe, far cheaper than assumed → capability-per-dollar falls fastest in verifiable domains, like quant research."],
+["DL6","Diffusion training objective in one line + why latent diffusion?","Learn to denoise: sample = iterated denoising from noise (reverse SDE / score matching). Latent diffusion runs it in a VAE's compressed space for ~10–100× cost savings."],
+["DL7","Why are evals 'the discipline' for agents?","Errors compound over long horizons; harnesses and verification matter more than model choice. Agent evals today ≈ backtests in 2005: everyone overfits them, few govern them."],
+["DL9","Where do LLMs demonstrably help a trading firm, and where should you be skeptical?","Help: research acceleration (code/lit/data), NLP signal extraction at scale, structured extraction. Skeptical: end-to-end 'LLM predicts returns' (leakage, nonstationarity), time-series foundation models (weak evidence so far)."],
+["SIG1","SIG in 30 seconds — founding, HQ, business, culture.","Founded 1987 by Jeff Yass + five co-founders (college poker friends). HQ Bala Cynwyd, PA. Among the world's largest options market makers (equity/ETF/index). Poker is literally in trader training; house epistemology = EV + calibration. VC arm famously seeded ByteDance."],
+["SIG1","Why does the Vanguard→SIG contrast matter in your story?","Vanguard: other people's money, decade horizons, slow loops. SIG: own capital, seconds-to-months horizons, brutal fast feedback. You want faster loops — say so."],
+["SIG2","Name the three fastest ways to fail a SIG interview.","(1) Overconfidence / miscalibration — the cardinal sin; (2) bluffing knowledge they can depth-probe; (3) outcome-based reasoning ('it worked so it was right')."],
+["SIG2","Interviewer: 'How confident are you? Would you bet $1,000 at those odds?' What's the right move?","Give a number with error bars and mean it — or revise to odds you WOULD take. Calibrated-but-wrong beats lucky-but-overconfident. Never refuse to commit; never inflate."],
+["PIT5","They attack: 'Half the department's excess return was YOUR model? How do you know? Would you bet on it?'","Explain the attribution methodology level-headed: how contribution was measured, what's public (Vanguard's own ML coverage), what the error bars are, and give calibrated confidence — this question is a calibration test wearing a finance costume."],
+["PIT4","Deliver your derivatives-gap answer in ~30 seconds, out loud.","Honest level → exactly what you've done about it (Natenberg, daily greeks/MM drills, vol surface) → why the process transfers anyway (epistemology not asset class) → equities→FI already proven. Calibration + fast learning IS the demo."],
+["PIT1","Deliver the 30-second pitch, out loud, right now.","Self-grade against: industrializes alpha research / repeatable process / 20+ team, 10+ prod models / personally a researcher first / why SIG (decision science, faster loops) / calibrated gap statement."]
+];
+
+const LORE=[
+"SIG runs internal poker tournaments — poker is literally part of trader training.",
+"SIG's VC arm made an early bet on ByteDance. One of the great venture trades ever.",
+"The '16 rule': annual vol ÷ 16 ≈ daily 1σ move. 16% IV ≈ 1% daily breakeven.",
+"Index put skew barely existed before the 1987 crash. Markets learned fear.",
+"Todd Simkin (SIG) on The Knowledge Project is the best public window into how SIG thinks.",
+"'Decision vs outcome' — SIG's core mental move. Good decisions can lose; grade the process.",
+"Kelly's criterion came out of Bell Labs (1956); Ed Thorp took it to blackjack, then markets.",
+"Folding early is a profit center. Killing bad research fast IS alpha.",
+"0DTE options went from a curiosity to ~half of SPX volume in about two years.",
+"SIG's HQ in Bala Cynwyd is a 10-minute drive from Fishtown. Home-field advantage.",
+"Variance risk premium: implied vol > realized on average. Insurance sellers get paid — until the flood.",
+"Adverse selection: the counterparty who WANTS to trade with you might know something you don't."
+];
+
+const PITCHES=[
+["30-second pitch","Industrializes alpha research → repeatable process → 20+ team / 10+ production models → researcher first → why SIG (decision science, faster loops) → calibrated derivatives-gap statement.",30],
+["2-minute pitch","Arc: researcher → bottleneck is process → built the factory. Concrete example. Equities→FI transfer. Why SIG + local. Calibrated self-assessment.",120],
+["Why-SIG answer","Decision science as the product; options = purest uncertainty; faster feedback loops; it's my city.",45],
+["Attribution defense","How was ~50% contribution measured? Public Vanguard coverage + methodology at principle level + error bars + confidence number.",60],
+["Gap answer","Honest level → what I've done for N weeks → why the process transfers → equities→FI proof.",40],
+["Kill-story","A research bet you folded: EV of continuing < EV of folding. Graded as decision, not outcome.",60]
+];
+
+/* ============================== LESSONS ============================== */
+/* chunk: {t:text, d:diagramFn, q:[question,answer]} — one idea per chunk (working memory), diagram = dual coding, q = retrieval gate */
+const LESSONS=[
+{id:"L1",title:"Payoffs & parity",dom:"OPT",kcs:["OPT1"],chunks:[
+ {t:"<b>Anchor:</b> every option is a bent line. A call: worthless below the strike, then 1-for-1 upside. Look at the shape, not the formula."},
+ {d:"dCall",t:"Call payoff at expiry. Kink at the strike K. Below K: zero. Above K: S−K."},
+ {d:"dPut",t:"A put is the mirror: pays K−S below the strike, zero above. Insurance against downside."},
+ {q:["Sketch mentally: where is a put worth something?","Below the strike — it pays K−S there, zero above."]},
+ {t:"<b>Put–call parity:</b> C − P = S − PV(K). Not a model — an <b>arbitrage constraint</b>. Buy call + sell put = own the stock forward. If prices disagree, free money exists."},
+ {t:"Consequence: same-strike call and put have <b>identical</b> implied vol, gamma, vega, theta. Interviewers set parity traps; this is the disarm."},
+ {q:["Stock $100, 1y call (K=100) = $10, rates≈0. The put?","≈$10. P = C − S + K = 10 − 100 + 100."]},
+ {t:"American extras: early exercise is only ever about <b>carry</b>. Calls: only just before a big dividend. Puts: when interest on the strike beats time value. Never exercise a call on a non-dividend stock early — sell it instead."}
+]},
+{id:"L2",title:"BSM = a hedging argument",dom:"OPT",kcs:["OPT3","OPT4"],chunks:[
+ {t:"<b>Anchor:</b> options are a volatility market. Skip the PDE. What matters: if you continuously delta-hedge an option, direction cancels out."},
+ {t:"What's left after direction cancels? P&L depends only on <b>realized vs implied volatility</b>. The premium is how you pay for vol; delta-hedging is how you strip out direction."},
+ {q:["So what is the BSM 'price' really?","The cost of the replication (hedging) strategy — not a forecast of where the stock goes."]},
+ {t:"Know 3 assumptions cold, and where they fail:\n• continuous frictionless hedging → false (discrete, costs)\n• constant vol → false (clusters, stochastic → smile)\n• lognormal returns → false (fat tails, jumps → skew)"},
+ {t:"<b>The most useful formula in trading interviews:</b>\nATM option ≈ 0.4 · S · σ · √T\nStraddle ≈ 0.8 · S · σ · √T ≈ expected absolute move."},
+ {q:["1y ATM option, $100 stock, 20% vol ≈ ?","0.4 × 100 × 0.2 = $8. Instant. No Black-Scholes needed."]},
+ {q:["1-month straddle on a $50 stock costs $3 — implied move?","~6% (~$3, about 1σ for the month). Straddle price ≈ expected abs move."]}
+]},
+{id:"L3",title:"Delta & gamma",dom:"OPT",kcs:["OPT5","OPT6"],chunks:[
+ {t:"<b>Anchor:</b> greeks are the market maker's dashboard. A book isn't a list of trades — it's a portfolio of greeks."},
+ {t:"<b>Delta</b> = hedge ratio, first and foremost. (Second reading: ≈ probability of finishing ITM — approximately, and the two diverge under skew.) ATM ≈ 0.5."},
+ {d:"dGamma",t:"<b>Gamma</b> is curvature. The option value bends above its tangent line (your delta hedge). Any move — either direction — puts you above the line."},
+ {q:["Long gamma, delta-hedged, stock moves. Why do you profit?","Your delta grows into rallies and shrinks into selloffs — rebalancing mechanically sells high, buys low. Convexity turns movement into money."]},
+ {t:"Short gamma is the reverse: hedging means <b>chasing</b> — buying rallies, selling dips, locking in losses on every swing. Gamma concentrates ATM and near expiry."},
+ {q:["Where does gamma live on the surface?","At-the-money, short-dated. Deep ITM/OTM and long-dated options have little."]}
+]},
+{id:"L4",title:"Theta & the P&L identity",dom:"OPT",kcs:["OPT7","OPT8"],chunks:[
+ {t:"<b>Theta is the rent you pay for gamma.</b> Long options: own convexity, bleed theta. Short: collect theta, sold convexity. THE core options concept."},
+ {d:"dPnl",t:"<b>The sun of the solar system:</b>\ndaily P&L ≈ ½·Γ·S²·(σ²real − σ²imp)·dt\nMove more than implied → gamma wins. Move less → theta wins."},
+ {q:["Breakeven daily move if IV = 16%?","16/√252 ≈ 1%/day. Rule of 16: annual vol ÷ 16 = daily 1σ."]},
+ {q:["Delta-hedged long straddle; stock frozen all week. P&L?","≈ minus a week of theta. Realized 0 < implied → the identity is negative. You paid rent for movement that never came."]},
+ {t:"This one line answers half of all options interview questions. Say it in words: <i>half gamma, times spot squared, times realized-minus-implied variance</i>."}
+]},
+{id:"L5",title:"Vega & IV-as-price",dom:"OPT",kcs:["OPT9","OPT12"],chunks:[
+ {t:"<b>Anchor:</b> implied vol is a PRICE, not a statistic. It clears supply and demand for optionality — fear, inventory, flows — and embeds a risk premium. Your quant instinct to treat it as an estimator is the #1 trap."},
+ {t:"<b>Vega</b> = sensitivity to that price. Gamma = exposure to <i>realized</i> movement; vega = exposure to the <i>quoted price</i> of future movement. Two different risks."},
+ {q:["Which dominates a 2-year option — vega or gamma?","Vega. Long-dated = vega-dominated; short-dated = gamma/theta-dominated. Know the term-structure split cold."]},
+ {t:"<b>Variance risk premium:</b> implied > subsequent realized, on average. Option sellers get paid for carrying crash risk."},
+ {q:["So why not just short vol forever?","Pennies in front of a steamroller: the premium is compensation for rare catastrophic losses. The average hides the tail."]}
+]},
+{id:"L6",title:"Skew, smile, surface",dom:"OPT",kcs:["OPT10","OPT11"],chunks:[
+ {d:"dSmile",t:"Plot IV against strike: it's not flat. Index options show a <b>skew</b> — downside puts trade at much higher IV than upside calls."},
+ {t:"Three separate mechanisms (know all three):\n1. <b>Demand</b> — everyone wants crash insurance\n2. <b>Leverage effect</b> — vol rises when prices fall\n3. <b>Jump risk</b> — returns have fat left tails\nSkew barely existed before 1987. Markets learned."},
+ {q:["Interviewer: 'why is index put skew steep?' — go.","Crash-protection demand + leverage effect + jump risk. Three mechanisms, not one."]},
+ {t:"<b>Surface dynamics:</b> when spot moves, does the smile stay put by strike (<b>sticky strike</b>) or slide with moneyness (<b>sticky delta</b>)? Regime-dependent. Neither is always right — knowing THAT is the senior answer."},
+ {t:"Term structure: upward-sloping in calm, inverts in stress. Event vol: earnings make short-dated IV spike, then crush. VIX ≈ 30-day variance-swap-style aggregate of SPX options."}
+]},
+{id:"L7",title:"Market making",dom:"OPT",kcs:["OPT13","OPT14"],chunks:[
+ {t:"<b>Anchor: market making = getting paid to face adverse selection.</b> This is SIG's core business. Quote two-sided, earn the spread, avoid being run over."},
+ {t:"Edge = spread capture − adverse selection − hedging costs − inventory risk. Every quoting decision balances these four."},
+ {q:["A counterparty lifts your offer twice, fast. What's happening and what do you do?","They may know something. Move your market up / widen. Being traded against is information — never dig in."]},
+ {t:"Inventory: you rarely exit at fair value. Hedge delta immediately; hedge gamma/vega with other options; warehouse residual. Your book = a portfolio of greeks."},
+ {q:["What's pin risk?","Short ATM at expiry: assignment is uncertain, so tomorrow's delta is unknown. Tiny spot moves whip your hedge needs."]},
+ {t:"Where ML attacks this stack: quoting models, adverse-selection prediction, vol forecasting, hedging optimization, execution. Fast feedback + labeled outcomes = supervised-learning-shaped. <i>Have a view here — it's your interview question.</i>"}
+]},
+{id:"L8",title:"0DTE",dom:"OPT",kcs:["OPT15"],chunks:[
+ {t:"Zero-days-to-expiry index options ≈ <b>half of SPX volume</b> now (daily expirations since 2022). The story in SIG's core market."},
+ {t:"Everything compresses to hours: vega ≈ 0, pure gamma/theta instruments. IV becomes an intraday event-price."},
+ {q:["Why do MMs like 0DTE flow — and fear it?","Like: enormous, mostly retail/systematic (less toxic). Fear: gamma near expiry is a razor — violent inventory dynamics."]},
+ {t:"Live debates: does dealer 0DTE hedging amplify or dampen intraday moves? Evidence mixed. Interview-grade take: <i>0DTE turned the surface's short end into a high-frequency market — the modeling problem becomes predicting the next hours' realized move and flow toxicity. Very ML-shaped.</i>"}
+]},
+{id:"L9",title:"Betting & Kelly",dom:"BET",kcs:["BET1","BET2","BET3","BET6"],chunks:[
+ {t:"<b>Anchor: everything is a bet.</b> EV, variance, sizing, calibration. This is SIG's house schema — and the connective tissue to your research process."},
+ {q:["Die pays its face. Fair price?","$3.50. Now: with one optional reroll?  Reroll 1–3 → ½(5)+½(3.5) = $4.25. Option value = keep the good, redraw the bad."]},
+ {d:"dKelly",t:"<b>Kelly:</b> f* = edge/odds maximizes long-run log wealth. 60/40 even-money coin → bet 20%. The curve is a hill: betting too much is worse than too little."},
+ {q:["Why fractional Kelly in practice?","Your edge estimate has error, and full Kelly is violently volatile. Half-Kelly gives ~75% of growth at half the variance."]},
+ {t:"<b>Decision ≠ outcome.</b> A good bet can lose; a bad bet can win. Grade the process. At SIG this isn't philosophy — it's how they evaluate YOU."},
+ {q:["'How confident are you? Would you bet $1,000 on it?' — what's being tested?","Whether your confidence is a calibrated probability you'd accept consequences on. Answer with a number + what would change your mind."]}
+]},
+{id:"L10",title:"Make-a-market games",dom:"BET",kcs:["BET4","BET5"],chunks:[
+ {t:"SIG's signature interview exercise: <b>'make me a market on X.'</b> The test isn't the number — it's the protocol."},
+ {t:"The protocol:\n1. Estimate (Fermi if needed)\n2. Quote bid/ask with <b>width matching your uncertainty</b>\n3. Be genuinely willing to trade both sides\n4. <b>Update when traded against</b> — they lifted your offer? Move up."},
+ {q:["Market on # heads in 100 flips?","Mean 50, SD 5 (√(100·¼)). Quote ~49/51 — uncertainty is known, so tight. ±10 = 2σ."]},
+ {q:["Market on the population of Philadelphia?","~1.55M city proper. Quote WIDE (say 1.3M/1.8M) — your uncertainty is real. Then update on every trade."]},
+ {t:"Bayes reflex: 1,000 coins, one double-headed, 10 straight heads → only ~50.6% it's the trick coin (1024 vs 999). <b>Base rates dominate</b> even dramatic evidence."}
+]},
+{id:"L11",title:"Transformers → LLMs",dom:"DL",kcs:["DL1","DL2","DL3","DL4"],chunks:[
+ {t:"<b>Anchor: transformers are content-based routing.</b> Every token asks 'who's relevant to me?' and pulls information from those tokens. That's attention."},
+ {d:"dAttn",t:"softmax(QKᵀ/√d)·V — queries match keys, values flow. All-pairs → O(n²) in context length: the constraint behind half of architecture research."},
+ {q:["Why do transformers need positional embeddings (RoPE)?","Attention is permutation-equivariant — without position info, word order is invisible."]},
+ {t:"<b>The pipeline:</b> pretraining (next-token, web scale) → SFT → preference optimization (RLHF/PPO, now often DPO). Stage 3 is why autocomplete became an assistant."},
+ {t:"<b>Scaling laws are economics, not physics.</b> Kaplan '20: loss = power law in compute. Chinchilla '22: models undertrained (~20 tok/param optimal). Post-'23: over-train small models — inference cost dominates. Every architecture choice since is a response to this curve."},
+ {q:["Why does everyone over-train past Chinchilla-optimal now?","Inference economics: a smaller model trained longer is cheaper to SERVE at equal quality."]},
+ {t:"Efficiency stack, name-level: <b>MoE</b> (sparse experts, most frontier models) · <b>KV cache</b> (why context costs RAM) · <b>LoRA</b> (fine-tune 1% of weights) · quantization · distillation."}
+]},
+{id:"L12",title:"Reasoning, agents, diffusion",dom:"DL",kcs:["DL5","DL6","DL7","DL9"],chunks:[
+ {t:"<b>2024–26's big shift: test-time compute.</b> RL on verifiable rewards (o1/R1-style) teaches models to think longer on hard problems. A SECOND scaling axis."},
+ {q:["Why does this matter for quant research specifically?","Capability-per-dollar falls fastest in VERIFIABLE domains — math, code. Quant research lives exactly there."]},
+ {t:"<b>Agents are harnesses, not models.</b> Tool loops + verification + error recovery; reliability engineering is the binding constraint. Your line: 'agent evals are where backtests were in 2005 — everyone overfits them, few govern them.'"},
+ {t:"<b>Diffusion = learned denoising.</b> Train to reverse noise; sample by iterating. Latent diffusion runs in compressed space. Non-obvious quant take: diffusion as conditional distribution generator — market scenarios, synthetic paths, stress tests."},
+ {q:["LLMs in finance: where's real value vs hype?","Real: research acceleration, NLP signals at scale, structured extraction. Hype: end-to-end return prediction (leakage, nonstationarity), time-series foundation models (weak evidence). Calibrated skepticism plays perfectly at a trading firm."]}
+]},
+{id:"L13",title:"SIG & the interview",dom:"SIG",kcs:["SIG1","SIG2"],chunks:[
+ {t:"<b>The firm:</b> founded 1987, Jeff Yass + five co-founders (college poker friends). HQ Bala Cynwyd. Among the largest options MMs on earth. Private, own capital. VC arm seeded ByteDance."},
+ {t:"<b>The culture:</b> decision science is the brand. Poker in trader training. Vocabulary that lands: edge, EV, variance, calibration, folding, adverse selection. Vocabulary that doesn't: stakeholder alignment, transformation journey."},
+ {q:["The Vanguard→SIG contrast, as a selling point?","Vanguard: others' money, decade horizons. SIG: own money, seconds-to-months, brutal fast feedback. 'I want faster loops' — mean it."]},
+ {t:"<b>Interview pattern:</b> probability & EV games → make-a-market → calibration probes ('would you bet on it?') → mental math → for you: research-process deep-dives + 'how would you ML our market making?'"},
+ {q:["Three fastest ways to fail?","Overconfidence (cardinal sin), bluffing depth-probeable knowledge, outcome-based reasoning."]},
+ {t:"Poker knowledge NOT required; poker <b>thinking</b> is. Wrong-but-calibrated beats right-but-overconfident. Every strong claim: confidence number + falsifier."}
+]}
+];
+
+/* ============================== DIAGRAMS (SVG builders) ============================== */
+function plot(lines,opts={}){
+  const W=320,H=170,p=26;
+  const xs=lines.flatMap(l=>l.pts.map(q=>q[0])),ys=lines.flatMap(l=>l.pts.map(q=>q[1]));
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys,0),y1=Math.max(...ys);
+  const X=v=>p+(v-x0)/(x1-x0)*(W-2*p),Y=v=>H-p-(v-y0)/((y1-y0)||1)*(H-2*p);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  s+=`<line x1="${p}" y1="${Y(0)}" x2="${W-p}" y2="${Y(0)}" stroke="#383835" stroke-width="1"/>`;
+  if(opts.vline!==undefined)s+=`<line x1="${X(opts.vline)}" y1="${p-8}" x2="${X(opts.vline)}" y2="${H-p+6}" stroke="#2c2c2a" stroke-width="1" stroke-dasharray="3 3"/>`;
+  for(const l of lines){
+    const d=l.pts.map((q,i)=>(i?"L":"M")+X(q[0]).toFixed(1)+" "+Y(q[1]).toFixed(1)).join(" ");
+    s+=`<path d="${d}" fill="none" stroke="${l.c||"#3987e5"}" stroke-width="2.5" stroke-linejoin="round" ${l.dash?'stroke-dasharray="5 4"':""}/>`;
+    if(l.lab)s+=`<text x="${X(l.pts[l.pts.length-1][0])-4}" y="${Y(l.pts[l.pts.length-1][1])-7}" fill="${l.c||"#3987e5"}" font-size="11" text-anchor="end">${l.lab}</text>`;
+  }
+  if(opts.xlab)s+=`<text x="${W/2}" y="${H-4}" fill="#898781" font-size="11" text-anchor="middle">${opts.xlab}</text>`;
+  if(opts.marks)for(const m of opts.marks)s+=`<text x="${X(m[0])}" y="${Y(0)+14}" fill="#898781" font-size="11" text-anchor="middle">${m[1]}</text>`;
+  return s+"</svg>";
+}
+const DIAG={
+ dCall:()=>plot([{pts:[[0,0],[100,0],[200,100]],c:"#3987e5",lab:"call"}],{vline:100,marks:[[100,"K"]],xlab:"stock price at expiry"}),
+ dPut:()=>plot([{pts:[[0,100],[100,0],[200,0]],c:"#e66767",lab:"put"}],{vline:100,marks:[[100,"K"]],xlab:"stock price at expiry"}),
+ dGamma:()=>plot([{pts:Array.from({length:41},(_,i)=>{const s=60+i*2;return[s,Math.max(s-100,0)+18*Math.exp(-((s-100)/28)**2)]}),c:"#3987e5",lab:"option value"},{pts:[[60,2],[140,42]],c:"#898781",dash:1,lab:"delta hedge"}],{vline:100,marks:[[100,"K"]],xlab:"curvature = gamma: any move beats the tangent"}),
+ dPnl:()=>plot([{pts:Array.from({length:41},(_,i)=>{const m=i/10;return[m,0.5*(m*m-1)]}),c:"#3987e5",lab:"P&L"}],{vline:1,marks:[[1,"implied move"]],xlab:"day's move (σ) — breakeven at implied"}),
+ dSmile:()=>plot([{pts:Array.from({length:41},(_,i)=>{const k=70+i*1.5;return[k,16+Math.max(0,(100-k))*0.28+Math.max(0,(k-100))*0.06]}),c:"#3987e5",lab:"IV"}],{vline:100,marks:[[100,"ATM"]],xlab:"strike — puts (left) trade rich: skew"}),
+ dKelly:()=>plot([{pts:Array.from({length:41},(_,i)=>{const f=i/40;return[f,f>=1?-3:(0.6*Math.log(1+f)+0.4*Math.log(1-f))*100]}).filter(q=>q[1]>-2),c:"#199e70",lab:"growth"}],{vline:0.2,marks:[[0.2,"f*=20%"]],xlab:"fraction bet (60/40 coin) — a hill, not a slope"}),
+ dAttn:()=>{const W=320,H=150;let s=`<svg viewBox="0 0 ${W} ${H}">`;const toks=["The","cat","sat","on","it"];toks.forEach((t,i)=>{const x=30+i*62;s+=`<rect x="${x-22}" y="104" width="46" height="26" rx="6" fill="#232322" stroke="#2c2c2a"/><text x="${x}" y="121" fill="#c3c2b7" font-size="12" text-anchor="middle">${t}</text>`;if(i<4){const op=i===1?0.9:0.25;s+=`<path d="M ${30+4*62} 100 Q ${(x+30+4*62)/2} ${30+i*8} ${x} 100" fill="none" stroke="#3987e5" stroke-width="${i===1?3:1.5}" opacity="${op}"/>`}});s+=`<text x="160" y="18" fill="#898781" font-size="11" text-anchor="middle">"it" attends hardest to "cat" — routing by content</text>`;return s+"</svg>"}
+};
+
+/* ============================== STATE ============================== */
+const TODAY=()=>new Date().toISOString().slice(0,10);
+const DAY=86400000;
+let S;
+function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,frzWk:null},
+ kc:Object.fromEntries(Object.keys(KC).map(k=>[k,{lv:0,due:null,reps:0}])),
+ log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,
+ set:{key:"",par:1,base:600,target:2500,horizon:4,tax:0.42,voice:false}}}
+function load(){try{S=Object.assign(defaults(),JSON.parse(localStorage.el||"{}"));S.set=Object.assign(defaults().set,S.set);S.kc=Object.assign(defaults().kc,S.kc)}catch(e){S=defaults()}
+ if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
+ if(S.evStart===null)S.evStart=oddsAny();
+ save()}
+function save(){localStorage.el=JSON.stringify(S)}
+
+/* ============================== MODELS ============================== */
+function readiness(){const dom={};for(const[k,m]of Object.entries(KC)){(dom[m[1]]=dom[m[1]]||[]).push(S.kc[k].lv/4)}
+ let r=0;for(const[d,w]of Object.entries(DOMW)){const a=dom[d]||[0];r+=w*(a.reduce((x,y)=>x+y,0)/a.length)}return r}
+function calScore(){const b=S.brier.slice(-30);if(b.length<5)return .25;return b.reduce((x,y)=>x+y,0)/b.length}
+function oddsSig(){const r=readiness();let p=.18+.27*r;const c=calScore();if(c<.15)p+=.03;else if(c<.22)p+=.015;p+=Math.min(S.streak.n,14)*.002;return Math.min(p,.55)}
+function oddsAny(){const p=oddsSig();const alt=.10+.18*readiness();return 1-(1-p)*Math.pow(1-alt,S.set.par)}
+function evDelta(){const d=(S.set.target-S.set.base)*1000*(1-S.set.tax)*S.set.horizon;return Math.max(0,(oddsAny()-S.evStart))*d}
+const fmt$=n=>n>=1e6?"$"+(n/1e6).toFixed(2)+"M":"$"+Math.round(n/1000)+"k";
+
+/* ============================== SRS ============================== */
+function due(k){const m=S.kc[k];return m.lv>0&&m.due&&m.due<=TODAY()}
+function grade(k,g,conf){ // g: 0 miss, 1 close, 2 got
+ const m=S.kc[k];const wasDue=due(k)||m.lv===0;
+ if(conf!=null){const c=conf/100,o=g===2?1:0;S.brier.push((c-o)*(c-o));if(S.brier.length>60)S.brier.shift();
+   if(conf>=90&&g===0)m.lv=Math.max(0,m.lv-1)}
+ if(g===2){if(wasDue)m.lv=Math.min(4,m.lv+1);m.due=new Date(Date.now()+LVL_IVL[m.lv]*DAY).toISOString().slice(0,10)}
+ else if(g===1){m.due=new Date(Date.now()+DAY).toISOString().slice(0,10)}
+ else{m.lv=Math.max(0,m.lv-1);m.due=TODAY()}
+ m.reps++;S.log.push({t:Date.now(),k,g});if(S.log.length>400)S.log.shift();
+ const xp=g===2?(Math.random()<1/6?30:10):g===1?5:2;S.xp+=xp;save();return xp}
+
+/* ============================== QUESTS & STREAK ============================== */
+const QGOAL={drill:10,sprint:1,learn:1};
+function questTick(kind,n=1){S.quests[kind]=(S.quests[kind]||0)+n;checkStreak();save()}
+function questsDone(){return S.quests.drill>=QGOAL.drill&&S.quests.sprint>=QGOAL.sprint&&S.quests.learn>=QGOAL.learn}
+function checkStreak(){if(!questsDone())return;const t=TODAY();if(S.streak.last===t)return;
+ const y=new Date(Date.now()-DAY).toISOString().slice(0,10);
+ if(S.streak.last===y||S.streak.last===null){S.streak.n++}
+ else{const wk=t.slice(0,8);if(S.streak.frzWk!==wk&&S.streak.frz>0){S.streak.n++;S.streak.frzWk=wk}else S.streak.n=1}
+ S.streak.last=t;save()}
+
+/* ============================== VIEWS ============================== */
+const V=document.getElementById("view");
+const TABS=[["today","🎯","Today"],["learn","📚","Learn"],["drill","⚔️","Drill"],["sprint","⏱️","Sprint"],["coach","🎙️","Coach"],["me","📈","Me"]];
+let tab="today";
+function nav(){document.getElementById("nav").innerHTML=TABS.map(t=>`<button class="${tab===t[0]?"on":""}" onclick="go('${t[0]}')"><span class="ico">${t[1]}</span>${t[2]}</button>`).join("")}
+function go(t){tab=t;nav();render()}
+function hdr(){document.getElementById("hstreak").textContent="🔥 "+S.streak.n;document.getElementById("hev").textContent="+"+fmt$(evDelta())+" EV"}
+function render(){hdr();({today:vToday,learn:vLearn,drill:vDrillHome,sprint:vSprint,coach:vCoach,me:vMe})[tab]()}
+
+/* ---------- TODAY ---------- */
+function vToday(){
+ const p=Math.round(oddsAny()*100),ps=Math.round(oddsSig()*100);
+ const nd=Object.keys(KC).filter(due).length;
+ const q=S.quests;
+ V.innerHTML=`
+ <div class="tilegrid">
+  <div class="tile"><div class="lab">Offer odds*</div><div class="val" style="color:var(--blue)">${p}%</div><div class="sub">SIG alone: ${ps}%</div></div>
+  <div class="tile"><div class="lab">EV banked*</div><div class="val" style="color:var(--good)">+${fmt$(evDelta())}</div><div class="sub">since day one</div></div>
+ </div>
+ <div class="card">
+  <h2 style="margin-top:0">Today's quests ${questsDone()?"✅":""}</h2>
+  <div class="quest ${q.drill>=QGOAL.drill?"done":""}">⚔️ Answer ${QGOAL.drill} drills <span class="st">${Math.min(q.drill,QGOAL.drill)}/${QGOAL.drill}</span></div>
+  <div class="quest ${q.sprint>=QGOAL.sprint?"done":""}">⏱️ One mental-math sprint <span class="st">${Math.min(q.sprint,QGOAL.sprint)}/1</span></div>
+  <div class="quest ${q.learn>=QGOAL.learn?"done":""}">📚 One lesson or pitch rep <span class="st">${Math.min(q.learn,QGOAL.learn)}/1</span></div>
+ </div>
+ <button class="btn" onclick="startDrill()">Start smart session ${nd?`(${nd} due)`:""}</button>
+ <div class="row" style="margin-top:8px">
+  <button class="btn sec small" onclick="go('sprint')">Sprint</button>
+  <button class="btn sec small" onclick="vPitch()">Pitch rep</button>
+  <button class="btn sec small" onclick="go('learn')">Learn</button>
+ </div>
+ ${S.lore<LORE.length&&S.xp>=(S.lore+1)*120?`<div class="card flash"><div class="lore">🃏 <b>Edge card unlocked:</b><br>${LORE[S.lore]}</div><button class="btn sec small" onclick="S.lore++;save();render()">Collect</button></div>`:""}
+ <div class="note">*Motivational model — directionally honest, precisely made up. Drivers: mastery coverage, calibration, streak, parallel processes (${S.set.par}). Tune in Me → Settings.</div>`}
+
+/* ---------- LEARN ---------- */
+function vLearn(){
+ const groups={OPT:"Options & market making",BET:"Betting & games",DL:"Modern deep learning",SIG:"SIG"};
+ let h="";
+ for(const[g,label]of Object.entries(groups)){
+  const ls=LESSONS.filter(l=>l.dom===g);if(!ls.length)continue;
+  h+=`<h2>${label}</h2><div class="card" style="padding:2px 14px">`;
+  for(const l of ls){const st=S.lessons[l.id]||0,done=st>=l.chunks.length;
+   h+=`<div class="lesson" onclick="openLesson('${l.id}')"><div><div class="ttl">${l.title}</div><div class="sub">${l.chunks.length} steps · ${l.kcs.map(k=>KC[k][0]).join(", ")}</div></div>${done?'<span class="done">✓</span>':st>0?`<span class="prog">${st}/${l.chunks.length}</span>`:'<span class="prog">›</span>'}</div>`}
+  h+="</div>"}
+ V.innerHTML=h}
+let curL=null,curC=0,gateOpen=false;
+function openLesson(id){curL=LESSONS.find(l=>l.id===id);curC=Math.min(S.lessons[id]||0,curL.chunks.length-1);gateOpen=false;vChunk()}
+function vChunk(){
+ const l=curL,c=l.chunks[curC],last=curC===l.chunks.length-1;
+ let body="";
+ if(c.d)body+=`<div class="diagram">${DIAG[c.d]()}${c.t?`<div class="dcap">${c.t}</div>`:""}</div>`;
+ else if(c.t)body+=`<div class="chunk">${c.t}</div>`;
+ if(c.q){body+=`<div class="chunk"><b>Try it:</b> ${c.q[0]}</div>`;
+  body+=gateOpen?`<div class="a">${c.q[1]}</div><button class="btn" onclick="chunkNext()">${last?"Finish lesson":"Got it — continue"}</button>`
+   :`<button class="btn sec" onclick="gateOpen=true;vChunk()">Show answer</button>`}
+ else body+=`<button class="btn" onclick="chunkNext()">${last?"Finish lesson":"Continue"}</button>`;
+ V.innerHTML=`<div class="meta"><span>${l.title}</span><span>${curC+1}/${l.chunks.length}</span></div>
+ <div class="bar" style="margin-bottom:14px"><i style="width:${(curC)/l.chunks.length*100}%"></i></div>
+ <div class="card">${body}</div>
+ <button class="btn sec small" onclick="go('learn')">Exit</button>`}
+function chunkNext(){gateOpen=false;curC++;S.lessons[curL.id]=Math.max(S.lessons[curL.id]||0,curC);
+ if(curC>=curL.chunks.length){ // lesson complete: expose KCs
+  for(const k of curL.kcs){const m=S.kc[k];if(m.lv===0){m.lv=1;m.due=new Date(Date.now()+DAY).toISOString().slice(0,10)}}
+  S.xp+=25;questTick("learn");save();
+  V.innerHTML=`<div class="card center flash"><div style="font-size:40px">🎓</div><div class="q">${curL.title} complete</div><div class="note">KCs unlocked for drilling: ${curL.kcs.map(k=>`<span class="chip">${KC[k][0]}</span>`).join("")}</div><div class="note">These come back tomorrow in your due queue — that's the spacing doing its job.</div></div><button class="btn" onclick="go('learn')">Back to lessons</button>`;
+  return}
+ save();vChunk()}
+
+/* ---------- DRILL ---------- */
+let queue=[],qi=0,conf=null,revealed=false,sessXP=0,sessN=0;
+function vDrillHome(){
+ const nd=Object.keys(KC).filter(due).length;
+ const open=Object.keys(KC).filter(k=>S.kc[k].lv>0).length;
+ V.innerHTML=`<div class="card"><div class="q">Drill</div>
+ <div class="note">${nd} KCs due for review · ${open}/${Object.keys(KC).length} unlocked. Sessions interleave due reviews, current topics, and randoms (40/40/20). Confidence is asked before grading — calibration is the skill.</div></div>
+ <button class="btn" onclick="startDrill()">Start session (10)</button>
+ <div class="row" style="margin-top:8px"><button class="btn sec small" onclick="startDrill('OPT')">Options only</button><button class="btn sec small" onclick="startDrill('BET')">Betting only</button><button class="btn sec small" onclick="startDrill('DL')">DL only</button></div>`}
+function startDrill(domFilter){
+ tab="drill";nav();
+ const unlocked=k=>S.kc[k].lv>0;
+ let pool=DRILLS.map((d,i)=>({...{kc:d[0],q:d[1],a:d[2],mc:d[3],ci:d[4]},i}));
+ if(domFilter)pool=pool.filter(d=>KC[d.kc][1]===domFilter);
+ const dueP=pool.filter(d=>due(d.kc));
+ const newP=pool.filter(d=>!due(d.kc)&&unlocked(d.kc));
+ const anyP=pool.filter(d=>!unlocked(d.kc));
+ const pick=(arr,n)=>{const c=[...arr];const o=[];while(o.length<n&&c.length)o.push(c.splice(Math.floor(Math.random()*c.length),1)[0]);return o};
+ queue=[...pick(dueP,4),...pick(newP,4),...pick(anyP.length?anyP:newP,2)];
+ queue=pick(queue,queue.length); // shuffle (interleave)
+ if(!queue.length)queue=pick(pool,10);
+ qi=0;sessXP=0;sessN=0;vQ()}
+function vQ(){
+ if(qi>=queue.length)return vDrillDone();
+ const d=queue[qi];conf=null;revealed=false;
+ const askConf=!d.mc&&(qi%2===0);
+ V.innerHTML=`<div class="meta"><span>${KC[d.kc][0]} · lv${S.kc[d.kc].lv}${due(d.kc)?" · DUE":""}</span><span>${qi+1}/${queue.length}</span></div>
+ <div class="card"><div class="q">${d.q}</div>
+ ${d.mc?`<div class="mc">${d.mc.map((c,i)=>`<button onclick="mcPick(${i})">${c}</button>`).join("")}</div>`:`
+ ${askConf?`<div class="note">Before you answer — how confident will you be?</div><div class="confrow" id="confrow">${[50,70,90,99].map(c=>`<button onclick="setConf(${c},this)">${c}%</button>`).join("")}</div>`:""}
+ <button class="btn sec" id="rev" onclick="reveal()">Answer out loud, then reveal</button>
+ <div id="ansbox"></div>`}
+ </div>`}
+function setConf(c,el){conf=c;document.querySelectorAll("#confrow button").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
+function reveal(){if(revealed)return;revealed=true;const d=queue[qi];
+ document.getElementById("ansbox").innerHTML=`<div class="a">${d.a}</div>
+ <div class="row"><button class="btn sec small" onclick="ans(0)">✗ Missed</button><button class="btn sec small" onclick="ans(1)">~ Close</button><button class="btn small" style="background:var(--good)" onclick="ans(2)">✓ Got it</button></div>`;
+ document.getElementById("rev").style.display="none"}
+function mcPick(i){const d=queue[qi];const ok=i===d.ci;
+ document.querySelectorAll(".mc button").forEach((b,j)=>{if(j===d.ci)b.classList.add("right");else if(j===i&&!ok)b.classList.add("wrong")});
+ setTimeout(()=>ans(ok?2:0),800)}
+function ans(g){const d=queue[qi];const xp=grade(d.kc,g,conf);sessXP+=xp;sessN++;S.drills++;questTick("drill");
+ const crit=xp>=30;qi++;
+ if(crit){V.innerHTML+=`<div class="card center flash"><span class="crit">⚡ EDGE! 3× XP</span></div>`;setTimeout(vQ,700)}else vQ()}
+function vDrillDone(){
+ const ev=evDelta();
+ V.innerHTML=`<div class="card center flash"><div style="font-size:40px">${questsDone()?"🔥":"⚔️"}</div>
+ <div class="q">Session done</div>
+ <div class="note">+${sessXP} XP · odds now ${Math.round(oddsAny()*100)}% · lifetime EV banked <b style="color:var(--good)">+${fmt$(ev)}</b></div>
+ <div class="note">${S.quests.drill<QGOAL.drill?`${QGOAL.drill-S.quests.drill} more answers to today's quest`:"Daily drill quest ✅"}</div></div>
+ <button class="btn" onclick="startDrill()">Again</button>
+ <button class="btn sec small" style="margin-top:8px" onclick="go('today')">Home</button>`}
+
+/* ---------- SPRINT ---------- */
+let spT=null,spLeft=0,spScore=0,spCur=null;
+function genSp(){
+ const r=Math.random();
+ if(r<.3){const a=10+Math.floor(Math.random()*90),b=10+Math.floor(Math.random()*90);return{q:`${a} + ${b}`,a:a+b}}
+ if(r<.5){const a=20+Math.floor(Math.random()*80),b=Math.floor(Math.random()*a);return{q:`${a} − ${b}`,a:a-b}}
+ if(r<.75){const a=11+Math.floor(Math.random()*19),b=3+Math.floor(Math.random()*9);return{q:`${a} × ${b}`,a:a*b}}
+ if(r<.9){const p=[5,10,15,20,25,40][Math.floor(Math.random()*6)],y=[40,60,80,120,200,240][Math.floor(Math.random()*6)];return{q:`${p}% of ${y}`,a:p*y/100}}
+ const S0=[50,100,200][Math.floor(Math.random()*3)],sg=[10,20,25,30,40][Math.floor(Math.random()*5)];return{q:`1y ATM option:\nS=$${S0}, σ=${sg}%  (≈)`,a:0.4*S0*sg/100,approx:true}}
+function vSprint(){
+ V.innerHTML=`<div class="card"><div class="q">Mental-math sprint</div>
+ <div class="note">75 seconds. Arithmetic, percents, and 0.4·S·σ√T pricing. PB: <b>${S.sprintPB}</b>. Speed is perishable and SIG tests it — daily.</div></div>
+ <button class="btn" onclick="spStart()">Go</button>`}
+function spStart(){spScore=0;spLeft=75;spNext();spT=setInterval(()=>{spLeft--;const e=document.getElementById("spt");if(e)e.textContent=spLeft+"s";if(spLeft<=0)spEnd()},1000)}
+function spNext(){spCur=genSp();
+ V.innerHTML=`<div class="timer" id="spt">${spLeft}s</div><div class="meta"><span>score ${spScore}</span><span>PB ${S.sprintPB}</span></div>
+ <div class="card"><div class="spr-num">${spCur.q}</div>
+ <input class="spr-in" id="spin" type="number" inputmode="decimal" autofocus>
+ <div class="row" style="margin-top:10px"><button class="btn" onclick="spSub()">Enter</button><button class="btn sec small" style="flex:0 0 80px" onclick="spNext()">Skip</button></div></div>`;
+ const inp=document.getElementById("spin");inp.focus();inp.onkeydown=e=>{if(e.key==="Enter")spSub()}}
+function spSub(){const v=parseFloat(document.getElementById("spin").value);if(isNaN(v))return;
+ const ok=spCur.approx?Math.abs(v-spCur.a)<=spCur.a*0.1:v===spCur.a;
+ if(ok)spScore++;spNext()}
+function spEnd(){clearInterval(spT);S.sprints++;questTick("sprint");const pb=spScore>S.sprintPB;if(pb)S.sprintPB=spScore;S.xp+=spScore*2;save();
+ V.innerHTML=`<div class="card center flash"><div style="font-size:40px">${pb?"🏆":"⏱️"}</div><div class="q">${spScore} correct</div>
+ <div class="note">${pb?"NEW PERSONAL BEST":"PB: "+S.sprintPB} · +${spScore*2} XP</div></div>
+ <button class="btn" onclick="spStart()">Again</button><button class="btn sec small" style="margin-top:8px" onclick="go('today')">Home</button>`}
+
+/* ---------- PITCH ---------- */
+let pT=null,pLeft=0,pIdx=0;
+function vPitch(){
+ V.innerHTML=`<div class="card"><div class="q">Pitch reps</div><div class="note">Speak OUT LOUD. The timer keeps you honest; self-grade brutally. Reps: ${S.pitches}</div></div>`+
+ PITCHES.map((p,i)=>`<div class="card"><b>${p[0]}</b> <span class="note">(${p[2]}s)</span><div class="note" style="margin:6px 0">${p[1]}</div><button class="btn sec small" onclick="pStart(${i})">Rep it</button></div>`).join("")+
+ `<button class="btn sec small" onclick="go('today')">Home</button>`}
+function pStart(i){pIdx=i;pLeft=PITCHES[i][2];
+ V.innerHTML=`<div class="card center"><div class="q">${PITCHES[i][0]}</div><div class="spr-num" id="pt">${pLeft}</div><div class="note">${PITCHES[i][1]}</div></div>
+ <button class="btn" onclick="pDone()">Done — grade me</button>`;
+ pT=setInterval(()=>{pLeft--;const e=document.getElementById("pt");if(e)e.textContent=Math.max(pLeft,0);if(pLeft<=-15){clearInterval(pT)}},1000)}
+function pDone(){clearInterval(pT);
+ V.innerHTML=`<div class="card"><div class="q">Honest self-grade</div><div class="note">Corporate-speak? Overclaims? Missed the EV/calibration framing? Ran long?</div>
+ <div class="row" style="margin-top:10px"><button class="btn sec small" onclick="pGrade(0)">Rough</button><button class="btn sec small" onclick="pGrade(1)">OK</button><button class="btn small" style="background:var(--good)" onclick="pGrade(2)">Clean</button></div></div>`}
+function pGrade(g){S.pitches++;S.xp+=g===2?15:8;questTick("learn");
+ if(g===2){const m=S.kc.PIT1;m.lv=Math.min(4,m.lv+ (m.reps%3===2?1:0));m.reps++}
+ save();vPitch()}
+
+/* ---------- COACH ---------- */
+let chat=[];
+function coachSys(){
+ const dues=Object.keys(KC).filter(due).map(k=>KC[k][0]).slice(0,8);
+ const weak=Object.entries(S.kc).filter(([k,m])=>m.lv<=1).map(([k])=>KC[k][0]).slice(0,8);
+ return `You are an elite interview coach preparing Dawer for SIG (Susquehanna): quant/ML leader (built Vanguard's investments AI org; DNN driving ~half of systematic equities' excess return on ~$15B AUM), positioning "I industrialize alpha research." Gaps: options/derivatives, post-2020 DL, calibration-game reps, mental-math speed.
+Teach with cognitive science: retrieval first (make him try before explaining), one idea per message, worked example then fade, name misconceptions ("IV as estimator", "delta=P(ITM)", outcome-based reasoning), demand confidence numbers before grading answers, praise calibrated wrongness over lucky overconfidence, connect options ideas to his quant-equities intuitions and flag when they mislead.
+Style: conversational, 2-4 sentences per turn, ONE question at a time, math in words. Be unsentimental about errors — SIG will be.
+Modes on request: DRILL (rapid-fire questions), MOCK (SIG interviewer character; after confident claims ask "would you bet $1,000 at those odds?"; run make-a-market games and punish non-updating), LEARN (socratic), PITCH (critique like a skeptical SIG partner).
+Currently due for review: ${dues.join(", ")||"none"}. Weakest areas: ${weak.join(", ")||"none"}. Default: drill him on due items.`}
+function vCoach(){
+ if(!S.set.key){V.innerHTML=`<div class="card"><div class="q">Coach needs a key</div><div class="note">One-time: paste an Anthropic API key (console.anthropic.com → API keys). Stored only on this device, sent only to api.anthropic.com. A month of heavy coaching ≈ a few dollars.</div>
+ <input type="password" id="ak" placeholder="sk-ant-...">
+ <button class="btn" onclick="S.set.key=document.getElementById('ak').value.trim();save();vCoach()">Save key</button></div>`;return}
+ V.innerHTML=`<div class="chat" id="chat">${chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${m.content.replace(/</g,"&lt;")}</div>`).join("")||'<div class="msg ai">Ready. Say "drill me", "mock interview", "teach me gamma", or "pitch mode".</div>'}</div>
+ <div class="chatin"><textarea id="ci" placeholder="Message…"></textarea>${window.webkitSpeechRecognition||window.SpeechRecognition?`<button onclick="mic()" id="micb">🎤</button>`:""}<button onclick="send()">➤</button></div>
+ <div class="note"><label><input type="checkbox" ${S.set.voice?"checked":""} onchange="S.set.voice=this.checked;save()"> speak replies aloud</label></div>`;
+ const c=document.getElementById("chat");c.scrollTop=c.scrollHeight;window.scrollTo(0,document.body.scrollHeight)}
+async function send(txt){
+ const el=document.getElementById("ci");const t=(txt||el.value).trim();if(!t)return;el.value="";
+ chat.push({role:"user",content:t});vCoach();
+ chat.push({role:"assistant",content:"…"});vCoach();
+ try{
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{
+   "content-type":"application/json","x-api-key":S.set.key,"anthropic-version":"2023-06-01",
+   "anthropic-dangerous-direct-browser-access":"true"},
+   body:JSON.stringify({model:"claude-opus-4-8",max_tokens:600,system:coachSys(),
+    messages:chat.slice(0,-1).slice(-24)})});
+  const j=await res.json();
+  const out=j.content?j.content.filter(b=>b.type==="text").map(b=>b.text).join(""):(j.error?.message||"error");
+  chat[chat.length-1].content=out;vCoach();
+  if(S.set.voice&&window.speechSynthesis){const u=new SpeechSynthesisUtterance(out);u.rate=1.05;speechSynthesis.speak(u)}
+ }catch(e){chat[chat.length-1].content="Network error: "+e.message;vCoach()}}
+function mic(){const R=window.SpeechRecognition||window.webkitSpeechRecognition;const r=new R();r.lang="en-US";
+ document.getElementById("micb").textContent="…";
+ r.onresult=e=>{send(e.results[0][0].transcript)};r.onend=()=>{const b=document.getElementById("micb");if(b)b.textContent="🎤"};r.start()}
+
+/* ---------- ME ---------- */
+function vMe(){
+ const doms={};for(const[k,m]of Object.entries(KC)){(doms[m[1]]=doms[m[1]]||[]).push(S.kc[k].lv)}
+ const domLbl={OPT:"Options",BET:"Betting",DL:"Deep learning",SIG:"SIG",PIT:"Pitch"};
+ const b=S.brier.slice(-24);
+ const spark=b.length>2?`<svg class="spark" viewBox="0 0 200 40"><path d="${b.map((v,i)=>(i?"L":"M")+(i/(b.length-1)*196+2)+" "+(4+v*80>38?38:4+v*80)).join(" ")}" fill="none" stroke="#3987e5" stroke-width="2"/></svg>`:'<div class="note">answer confidence questions to build your calibration trend</div>';
+ V.innerHTML=`
+ <div class="tilegrid">
+  <div class="tile"><div class="lab">XP</div><div class="val">${S.xp}</div><div class="sub">${S.drills} drills · ${S.sprints} sprints</div></div>
+  <div class="tile"><div class="lab">Streak</div><div class="val">🔥 ${S.streak.n}</div><div class="sub">${S.streak.frz} freeze left/wk</div></div>
+  <div class="tile"><div class="lab">Sprint PB</div><div class="val">${S.sprintPB}</div><div class="sub">75s</div></div>
+  <div class="tile"><div class="lab">Calibration</div><div class="val">${calScore()<.15?"sharp":calScore()<.25?"fair":"loose"}</div><div class="sub">Brier ${calScore().toFixed(2)} (low=good)</div></div>
+ </div>
+ <div class="card"><h2 style="margin-top:0">Mastery</h2>
+ ${Object.entries(doms).map(([d,a])=>{const p=a.reduce((x,y)=>x+y,0)/(a.length*4);return`<div class="kcrow"><span class="nm">${domLbl[d]}</span><div class="bar"><i style="width:${p*100}%"></i></div><span class="pc">${Math.round(p*100)}%</span></div>`}).join("")}
+ <div class="note">Levels: 0 unseen → 1 exposed → 2 retrieval → 3 transfer → 4 automatic. Promotion only at a delay — same-session success doesn't count.</div></div>
+ <div class="card"><h2 style="margin-top:0">Calibration trend</h2>${spark}<div class="note">Brier score per confidence-graded answer. High confidence + wrong = the SIG cardinal sin (and it demotes the KC).</div></div>
+ <div class="card"><h2 style="margin-top:0">Edge cards</h2><div class="note">${S.lore}/${LORE.length} collected — earn XP to unlock.</div>${LORE.slice(0,S.lore).map(l=>`<div class="lore">${l}</div>`).join("")}</div>
+ <button class="btn sec" onclick="vPitch()">Pitch reps</button>
+ <div style="height:8px"></div>
+ <button class="btn sec" onclick="vSet()">Settings</button>`}
+function vSet(){
+ V.innerHTML=`<div class="card"><div class="q">Settings</div>
+ <label>Anthropic API key (coach)</label><input type="password" id="s_key" value="${S.set.key}">
+ <label>Parallel processes running (0–4)</label><input type="number" id="s_par" value="${S.set.par}" min="0" max="4">
+ <label>Current comp ($k/yr)</label><input type="number" id="s_base" value="${S.set.base}">
+ <label>Target comp ($k/yr)</label><input type="number" id="s_tgt" value="${S.set.target}">
+ <label>Horizon (years) for EV model</label><input type="number" id="s_h" value="${S.set.horizon}">
+ <button class="btn" onclick="S.set.key=document.getElementById('s_key').value.trim();S.set.par=+document.getElementById('s_par').value;S.set.base=+document.getElementById('s_base').value;S.set.target=+document.getElementById('s_tgt').value;S.set.horizon=+document.getElementById('s_h').value;save();go('me')">Save</button>
+ <div class="note" style="margin-top:10px">All data lives in this browser only. <span style="color:var(--bad)" onclick="if(confirm('Wipe all progress?')){localStorage.removeItem('el');location.reload()}">Reset everything</span></div></div>`}
+
+/* ============================== BOOT ============================== */
+load();nav();render();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
