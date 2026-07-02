@@ -765,6 +765,20 @@ function pGrade(g){S.pitches++;S.xp+=g===2?15:8;questTick("learn");
 
 /* ---------- COACH ---------- */
 let chat=[];try{chat=JSON.parse(localStorage.el_chat||"[]")}catch(e){}
+const CTOOLS=[
+ {name:"log_contact",description:"Add a person or firm to the pipeline CRM. Use whenever he mentions reaching out to, applying to, or hearing from someone new.",input_schema:{type:"object",properties:{name:{type:"string"},firm:{type:"string"},stage:{type:"string",description:"Sent, Replied, Call, Process, Interview, or Offer"}},required:["name"]}},
+ {name:"advance_contact",description:"Move an existing CRM contact to a new stage when he reports progress.",input_schema:{type:"object",properties:{name:{type:"string"},stage:{type:"string",description:"Sent, Replied, Call, Process, Interview, or Offer"}},required:["name","stage"]}},
+ {name:"complete_mission",description:"Mark an execution mission done, WITH a one-sentence witness receipt of what he actually did. Only when he confirms the real-world action truly happened — never speculatively.",input_schema:{type:"object",properties:{mission_id:{type:"string",description:"m_resume, m_call, m_pkg, m_comp, m_link, m_recr, m_law, m_hh, m_proc, m_mock, m_fire, or m_date"},receipt:{type:"string"}},required:["mission_id","receipt"]}},
+ {name:"save_note",description:"Save an answer or note against a mission without completing it — resume answers, call notes, comp intel heard.",input_schema:{type:"object",properties:{mission_id:{type:"string"},text:{type:"string"}},required:["mission_id","text"]}},
+ {name:"get_state",description:"Read the current campaign state: odds, undone missions, CRM, asset scores, due study topics.",input_schema:{type:"object",properties:{}}}
+];
+function execTool(n,inp){try{
+ if(n==="log_contact"){let st=STAGES.indexOf(inp.stage||"Sent");if(st<0)st=0;S.crm.push({n:inp.name,f:inp.firm||"",st,ts:TODAY()});save();return "logged: "+inp.name+" at "+STAGES[st]}
+ if(n==="advance_contact"){const c=S.crm.find(x=>x.n.toLowerCase().includes(inp.name.toLowerCase()));if(!c)return "contact not found: "+inp.name;const st=STAGES.indexOf(inp.stage);if(st<0)return "invalid stage";c.st=st;c.ts=TODAY();save();return c.n+" → "+inp.stage}
+ if(n==="complete_mission"){if(!MISSIONS.find(m=>m.id===inp.mission_id))return "unknown mission id";(S.rcpt[inp.mission_id]=S.rcpt[inp.mission_id]||[]).push({s:"coach",t:inp.receipt,ts:TODAY()});S.missions[inp.mission_id]=TODAY();S.xp+=40;save();return "mission complete, receipt filed. Odds now "+Math.round(oddsAny()*100)+"%, EV banked +"+fmt$(evDelta())}
+ if(n==="save_note"){(S.rcpt[inp.mission_id||"misc"]=S.rcpt[inp.mission_id||"misc"]||[]).push({s:"note",t:inp.text,ts:TODAY()});save();return "saved"}
+ if(n==="get_state")return JSON.stringify({odds:Math.round(oddsAny()*100)+"%",ev_banked:fmt$(evDelta()),undone_missions:MISSIONS.filter(m=>!S.missions[m.id]).map(m=>m.id+" — "+m.t),crm:S.crm.map(c=>c.n+" ("+(c.f||"?")+") "+STAGES[c.st]),asset_scores:S.scores,due_topics:Object.keys(KC).filter(due).map(k=>KC[k][0]),streak:S.streak.n});
+ return "unknown tool"}catch(e){return "tool error: "+e.message}}
 function coachSys(){
  const dues=Object.keys(KC).filter(due).map(k=>KC[k][0]).slice(0,8);
  const weak=Object.entries(S.kc).filter(([k,m])=>m.lv<=1).map(([k])=>KC[k][0]).slice(0,8);
@@ -774,7 +788,8 @@ Style: conversational, 2-4 sentences per turn, ONE question at a time, math in w
 Modes on request: DRILL (rapid-fire questions), MOCK (SIG interviewer character; after confident claims ask "would you bet $1,000 at those odds?"; run make-a-market games and punish non-updating), LEARN (socratic), PITCH (critique like a skeptical SIG partner).
 Currently due for review: ${dues.join(", ")||"none"}. Weakest areas: ${weak.join(", ")||"none"}. Default: drill him on due items.
 CRITICAL: knowledge is not his bottleneck — execution is. Undone real-world missions: ${MISSIONS.filter(m=>!S.missions[m.id]).slice(0,3).map(m=>m.t).join("; ")||"none"}. Open EVERY session by asking, in one sentence, when he will do the top undone mission — get a specific day out of him before any drilling. If he dodges twice, call it what it is: avoidance dressed as studying.
-Campaign state — assets: resume score ${S.scores.resume?S.scores.resume.v+"/100":"unscored"}, cover letter ${S.scores.cover_letter?S.scores.cover_letter.v+"/100":"unscored"}. CRM: ${(S.crm||[]).length} contacts, ${(S.crm||[]).filter(c=>c.st>=1).length} replied, ${(S.crm||[]).filter(c=>c.st>=3).length} live processes, ${(S.crm||[]).filter(c=>c.st>=4).length} interviews. When he mentions sending outreach or hearing back, tell him to log it in the War room CRM.
+Campaign state — assets: resume score ${S.scores.resume?S.scores.resume.v+"/100":"unscored"}, cover letter ${S.scores.cover_letter?S.scores.cover_letter.v+"/100":"unscored"}. CRM: ${(S.crm||[]).length} contacts, ${(S.crm||[]).filter(c=>c.st>=1).length} replied, ${(S.crm||[]).filter(c=>c.st>=3).length} live processes, ${(S.crm||[]).filter(c=>c.st>=4).length} interviews.
+YOU OPERATE THE APP — you have tools. When he mentions outreach, replies, calls, or interviews: log_contact / advance_contact yourself, immediately. When he confirms a real-world mission action happened: complete_mission with a receipt sentence. When he gives answers worth keeping (resume items, call notes, comp bands heard): save_note. Use get_state when unsure. DO the bookkeeping — never tell him to go tap something you can do yourself. Confirm each action in a few words.
 You also have web search: use it to find live job postings (lane + target firms are in the playbook's job_search_queries), to check firms and interviewers before calls, and to verify market facts. When listing roles, give title, firm, location, and link, and say which mission it advances.
 ${PB?`HIS PLAYBOOK (use to draft outreach/resumes/answers in HIS voice; adapt, don't invent facts): ${JSON.stringify(PB).slice(0,14000)}`:"No playbook imported yet — for drafting tasks, remind him to import it in Settings."}`}
 function vCoach(){
@@ -803,12 +818,18 @@ async function send(txt){
    "content-type":"application/json","x-api-key":S.set.key,"anthropic-version":"2023-06-01",
    "anthropic-dangerous-direct-browser-access":"true"},
    body:JSON.stringify({model:"claude-opus-4-8",max_tokens:1500,system:coachSys(),
-    tools:[{type:"web_search_20260209",name:"web_search"}],
+    tools:[{type:"web_search_20260209",name:"web_search"},...CTOOLS],
     messages:msgs})}).then(r=>r.json());
   let msgs=chat.slice(0,-1).slice(-24).map(m=>({role:m.role,content:m.content}));
-  let j=await call(msgs),hops=0;
-  while(j.stop_reason==="pause_turn"&&hops<4){msgs=[...msgs,{role:"assistant",content:j.content}];j=await call(msgs);hops++}
-  const out=j.content?j.content.filter(b=>b.type==="text").map(b=>b.text).join(""):(j.error?.message||"error");
+  let j=await call(msgs),hops=0;const acts=[];
+  while((j.stop_reason==="pause_turn"||j.stop_reason==="tool_use")&&hops<8){
+   msgs=[...msgs,{role:"assistant",content:j.content}];
+   if(j.stop_reason==="tool_use"){
+    const results=j.content.filter(b=>b.type==="tool_use").map(b=>{const r=execTool(b.name,b.input);acts.push(b.name.replace(/_/g," "));return{type:"tool_result",tool_use_id:b.id,content:String(r)}});
+    msgs=[...msgs,{role:"user",content:results}]}
+   j=await call(msgs);hops++}
+  hdr();
+  const out=(j.content?j.content.filter(b=>b.type==="text").map(b=>b.text).join(""):(j.error?.message||"error"))+(acts.length?"\n\n⚙️ "+acts.join(" · "):"");
   chat[chat.length-1].content=out;localStorage.el_chat=JSON.stringify(chat.slice(-40));vCoach();
   speak(out,()=>{if(handsFree&&tab==="coach")micTo(null,document.getElementById("micb"),t=>send(t))})
  }catch(e){chat[chat.length-1].content="Network error: "+e.message;vCoach()}}
