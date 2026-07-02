@@ -197,6 +197,21 @@ const LORE=[
 "Adverse selection: the counterparty who WANTS to trade with you might know something you don't."
 ];
 
+/* Execution missions — these dominate the odds model by design */
+const MISSIONS=[
+ {id:"m_resume",t:"Resolve resume brackets, finalize v2",w:"Process mechanisms, interests line, dates one-liner. This blocks the package.",p:.01,by:3},
+ {id:"m_call",t:"Book + do the referrer debrief call",w:"30 min of routing intel beats a week of study. Which group, who decides, comp shape, timeline.",p:.03,by:4},
+ {id:"m_pkg",t:"Ship the package to your contact",w:"Resume + tailored letter + bowling lane + article links. Starts the only clock that matters.",p:.05,by:7},
+ {id:"m_comp",t:"Compliance-check the headline claim",w:"Your best number, confirmed safe — BEFORE someone probes it in a room.",p:.01,by:7},
+ {id:"m_link",t:"LinkedIn refresh + articles in Featured",w:"Recruiters and interviewers WILL look. Inbound volume is market data.",p:.01,by:7},
+ {id:"m_recr",t:"Reply to 3 recruiter inbounds",w:"Use the script. Free comp calibration + pipeline seeds.",p:.02,by:7},
+ {id:"m_law",t:"Lawyer reads non-compete / IP docs",w:"A garden-leave surprise mid-process kills 'rapid'.",p:.01,by:14},
+ {id:"m_hh",t:"Live comp bands from 2 headhunters",w:"'What are AI-lead mandates paying at multistrats?' — your negotiation database.",p:.01,by:14},
+ {id:"m_proc",t:"First parallel process live (Tier 1)",w:"Citadel / Millennium / P72 / Balyasny. Your BATNA and your rehearsal stage.",p:.03,by:21},
+ {id:"m_mock",t:"Paid mock with an ex-trader",w:"First contact with a hostile calibration-prober must not be the real interview.",p:.03,by:21},
+ {id:"m_fire",t:"Live-fire interview at any firm",w:"The only true eval. Burn the rust where it doesn't count.",p:.03,by:28},
+ {id:"m_date",t:"SIG interview on the calendar",w:"The forcing function. Everything compounds behind a date.",p:.04,by:35}
+];
 const PITCHES=[
 ["30-second pitch","Industrializes alpha research → repeatable process → 20+ team / 10+ production models → researcher first → why SIG (decision science, faster loops) → calibrated derivatives-gap statement.",30],
 ["2-minute pitch","Arc: researcher → bottleneck is process → built the factory. Concrete example. Equities→FI transfer. Why SIG + local. Calibrated self-assessment.",120],
@@ -346,7 +361,7 @@ const DAY=86400000;
 let S;
 function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,frzWk:null},
  kc:Object.fromEntries(Object.keys(KC).map(k=>[k,{lv:0,due:null,reps:0}])),
- log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,
+ log:[],brier:[],sprintPB:0,sprints:0,drills:0,pitches:0,lessons:{},lore:0,evStart:null,missions:{},pipe:[],
  set:{key:"",par:1,base:600,target:2500,horizon:4,tax:0.42,voice:false}}}
 function load(){try{S=Object.assign(defaults(),JSON.parse(localStorage.el||"{}"));S.set=Object.assign(defaults().set,S.set);S.kc=Object.assign(defaults().kc,S.kc)}catch(e){S=defaults()}
  if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
@@ -358,8 +373,13 @@ function save(){localStorage.el=JSON.stringify(S)}
 function readiness(){const dom={};for(const[k,m]of Object.entries(KC)){(dom[m[1]]=dom[m[1]]||[]).push(S.kc[k].lv/4)}
  let r=0;for(const[d,w]of Object.entries(DOMW)){const a=dom[d]||[0];r+=w*(a.reduce((x,y)=>x+y,0)/a.length)}return r}
 function calScore(){const b=S.brier.slice(-30);if(b.length<5)return .25;return b.reduce((x,y)=>x+y,0)/b.length}
-function oddsSig(){const r=readiness();let p=.18+.27*r;const c=calScore();if(c<.15)p+=.03;else if(c<.22)p+=.015;p+=Math.min(S.streak.n,14)*.002;return Math.min(p,.55)}
-function oddsAny(){const p=oddsSig();const alt=.10+.18*readiness();return 1-(1-p)*Math.pow(1-alt,S.set.par)}
+function execPts(){return MISSIONS.reduce((a,m)=>a+(S.missions[m.id]?m.p:0),0)}
+function parEff(){return S.pipe.length>0?S.pipe.length:S.set.par}
+function oddsSig(){const r=readiness();let p=.18+execPts()+.13*r;const c=calScore();if(c<.15)p+=.02;else if(c<.22)p+=.01;p+=Math.min(S.streak.n,14)*.0015;return Math.min(p,.62)}
+function oddsAny(){const p=oddsSig();const alt=Math.min(.08+.10*readiness()+.5*execPts(),.35);return 1-(1-p)*Math.pow(1-alt,parEff())}
+function daysIn(){return Math.floor((Date.now()-new Date(S.created).getTime())/DAY)}
+function nextMission(){return MISSIONS.find(m=>!S.missions[m.id])}
+function stallWk(){return oddsAny()*(S.set.target-S.set.base)*1000*(1-S.set.tax)/52}
 function evDelta(){const d=(S.set.target-S.set.base)*1000*(1-S.set.tax)*S.set.horizon;return Math.max(0,(oddsAny()-S.evStart))*d}
 const fmt$=n=>n>=1e6?"$"+(n/1e6).toFixed(2)+"M":"$"+Math.round(n/1000)+"k";
 
@@ -404,6 +424,7 @@ function vToday(){
   <div class="tile"><div class="lab">Offer odds*</div><div class="val" style="color:var(--blue)">${p}%</div><div class="sub">SIG alone: ${ps}%</div></div>
   <div class="tile"><div class="lab">EV banked*</div><div class="val" style="color:var(--good)">+${fmt$(evDelta())}</div><div class="sub">since day one</div></div>
  </div>
+ ${missionCard()}
  <div class="card">
   <h2 style="margin-top:0">Today's quests ${questsDone()?"✅":""}</h2>
   <div class="quest ${q.drill>=QGOAL.drill?"done":""}">⚔️ Answer ${QGOAL.drill} drills <span class="st">${Math.min(q.drill,QGOAL.drill)}/${QGOAL.drill}</span></div>
@@ -414,10 +435,27 @@ function vToday(){
  <div class="row" style="margin-top:8px">
   <button class="btn sec small" onclick="go('sprint')">Sprint</button>
   <button class="btn sec small" onclick="vPitch()">Pitch rep</button>
-  <button class="btn sec small" onclick="go('learn')">Learn</button>
+  <button class="btn sec small" onclick="vMissions()">Missions</button>
  </div>
  ${S.lore<LORE.length&&S.xp>=(S.lore+1)*120?`<div class="card flash"><div class="lore">🃏 <b>Edge card unlocked:</b><br>${LORE[S.lore]}</div><button class="btn sec small" onclick="S.lore++;save();render()">Collect</button></div>`:""}
- <div class="note">*Motivational model — directionally honest, precisely made up. Drivers: mastery coverage, calibration, streak, parallel processes (${S.set.par}). Tune in Me → Settings.</div>`}
+ <div class="note">*Motivational model — directionally honest, precisely made up. Drivers, in order of weight: execution missions (${Math.round(execPts()*100)}/28pts), pipeline (${parEff()} live), knowledge, calibration, streak.</div>`}
+function missionCard(){const m=nextMission();
+ if(!m)return `<div class="card"><b style="color:var(--good)">All execution missions complete. The pipeline is the plan now.</b></div>`;
+ const od=m.by<daysIn();
+ return `<div class="card" ${od?'style="border-color:var(--bad)"':""}>
+ <div style="font-size:11px;color:${od?"var(--bad)":"var(--warn)"};text-transform:uppercase;letter-spacing:.6px">${od?"⚠ overdue — this is the bottleneck":"next move"} · +${Math.round(m.p*100)}pts odds</div>
+ <div class="q" style="margin:6px 0">${m.t}</div>
+ <div class="note">${m.w}</div>
+ ${od?`<div class="note" style="color:var(--bad)">Stalling costs ≈ ${fmt$(stallWk())}/week of expected value. No amount of drilling buys this back.</div>`:""}
+ <div class="row" style="margin-top:10px"><button class="btn small" onclick="msDone('${m.id}')">Done ✓</button><button class="btn sec small" onclick="vMissions()">All missions</button></div></div>`}
+function msDone(id){if(!confirm("Really done? The odds model only works if you don't lie to it."))return;
+ S.missions[id]=TODAY();S.xp+=40;save();
+ V.innerHTML=`<div class="card center flash"><div style="font-size:40px">🚀</div><div class="q">Mission complete</div><div class="note">Odds now <b style="color:var(--blue)">${Math.round(oddsAny()*100)}%</b> · EV banked <b style="color:var(--good)">+${fmt$(evDelta())}</b></div></div><button class="btn" onclick="go('today')">Continue</button>`}
+function vMissions(){const d=daysIn();
+ V.innerHTML=`<div class="card"><div class="q">Execution missions</div><div class="note">Day ${d} of the campaign. These move your odds ~2× more than all studying combined — the app will not show you a great number while they stall.</div></div>`+
+ MISSIONS.map(m=>{const done=S.missions[m.id],od=!done&&m.by<d;
+  return `<div class="card" ${od?'style="border-color:var(--bad)"':""}><b>${done?"✅ ":od?"⚠️ ":"⬜ "}${m.t}</b> <span class="note">+${Math.round(m.p*100)}pts · target day ${m.by}${done?" · done "+done:""}</span><div class="note" style="margin-top:4px">${m.w}</div>${done?"":`<button class="btn sec small" style="margin-top:8px" onclick="msDone('${m.id}')">Mark done</button>`}</div>`}).join("")+
+ `<button class="btn sec small" onclick="go('today')">Home</button>`}
 
 /* ---------- LEARN ---------- */
 function vLearn(){
@@ -560,7 +598,8 @@ function coachSys(){
 Teach with cognitive science: retrieval first (make him try before explaining), one idea per message, worked example then fade, name misconceptions ("IV as estimator", "delta=P(ITM)", outcome-based reasoning), demand confidence numbers before grading answers, praise calibrated wrongness over lucky overconfidence, connect options ideas to his quant-equities intuitions and flag when they mislead.
 Style: conversational, 2-4 sentences per turn, ONE question at a time, math in words. Be unsentimental about errors — SIG will be.
 Modes on request: DRILL (rapid-fire questions), MOCK (SIG interviewer character; after confident claims ask "would you bet $1,000 at those odds?"; run make-a-market games and punish non-updating), LEARN (socratic), PITCH (critique like a skeptical SIG partner).
-Currently due for review: ${dues.join(", ")||"none"}. Weakest areas: ${weak.join(", ")||"none"}. Default: drill him on due items.`}
+Currently due for review: ${dues.join(", ")||"none"}. Weakest areas: ${weak.join(", ")||"none"}. Default: drill him on due items.
+CRITICAL: knowledge is not his bottleneck — execution is. Undone real-world missions: ${MISSIONS.filter(m=>!S.missions[m.id]).slice(0,3).map(m=>m.t).join("; ")||"none"}. Open EVERY session by asking, in one sentence, when he will do the top undone mission — get a specific day out of him before any drilling. If he dodges twice, call it what it is: avoidance dressed as studying.`}
 function vCoach(){
  if(!S.set.key){V.innerHTML=`<div class="card"><div class="q">Coach needs a key</div><div class="note">One-time: paste an Anthropic API key (console.anthropic.com → API keys). Stored only on this device, sent only to api.anthropic.com. A month of heavy coaching ≈ a few dollars.</div>
  <input type="password" id="ak" placeholder="sk-ant-...">
@@ -604,6 +643,12 @@ function vMe(){
  <div class="card"><h2 style="margin-top:0">Mastery</h2>
  ${Object.entries(doms).map(([d,a])=>{const p=a.reduce((x,y)=>x+y,0)/(a.length*4);return`<div class="kcrow"><span class="nm">${domLbl[d]}</span><div class="bar"><i style="width:${p*100}%"></i></div><span class="pc">${Math.round(p*100)}%</span></div>`}).join("")}
  <div class="note">Levels: 0 unseen → 1 exposed → 2 retrieval → 3 transfer → 4 automatic. Promotion only at a delay — same-session success doesn't count.</div></div>
+ <div class="card"><h2 style="margin-top:0">Odds anatomy</h2>
+ <div class="kcrow"><span class="nm">Base (referral)</span><div class="bar"><i style="width:100%;background:var(--grid)"></i></div><span class="pc">18</span></div>
+ <div class="kcrow"><span class="nm">Execution</span><div class="bar"><i style="width:${execPts()/.28*100}%;background:var(--warn)"></i></div><span class="pc">+${Math.round(execPts()*100)}</span></div>
+ <div class="kcrow"><span class="nm">Knowledge</span><div class="bar"><i style="width:${readiness()*100}%"></i></div><span class="pc">+${Math.round(.13*readiness()*100)}</span></div>
+ <div class="kcrow"><span class="nm">Pipeline</span><div class="bar"><i style="width:${Math.min(parEff()/4,1)*100}%;background:var(--aqua)"></i></div><span class="pc">×${parEff()}</span></div>
+ <div class="note">Execution is worth ~2× everything else combined — by design, because it is. ${MISSIONS.filter(m=>!S.missions[m.id]&&m.by<daysIn()).length?`<span style="color:var(--bad)">Overdue missions are capping you.</span>`:""}</div></div>
  <div class="card"><h2 style="margin-top:0">Calibration trend</h2>${spark}<div class="note">Brier score per confidence-graded answer. High confidence + wrong = the SIG cardinal sin (and it demotes the KC).</div></div>
  <div class="card"><h2 style="margin-top:0">Edge cards</h2><div class="note">${S.lore}/${LORE.length} collected — earn XP to unlock.</div>${LORE.slice(0,S.lore).map(l=>`<div class="lore">${l}</div>`).join("")}</div>
  <button class="btn sec" onclick="vPitch()">Pitch reps</button>
@@ -612,7 +657,11 @@ function vMe(){
 function vSet(){
  V.innerHTML=`<div class="card"><div class="q">Settings</div>
  <label>Anthropic API key (coach)</label><input type="password" id="s_key" value="${S.set.key}">
- <label>Parallel processes running (0–4)</label><input type="number" id="s_par" value="${S.set.par}" min="0" max="4">
+ <label>Pipeline — live processes (drives odds; beats the number below)</label>
+ <div style="margin:4px 0 8px">${S.pipe.map((f,i)=>`<span class="chip">${f} <span style="color:var(--bad);cursor:pointer" onclick="S.pipe.splice(${i},1);save();vSet()">✕</span></span>`).join("")||'<span class="note">none yet — that IS the gap</span>'}</div>
+ <input type="text" id="s_pf" placeholder="Add firm (e.g. Millennium)">
+ <button class="btn sec small" style="margin-bottom:12px" onclick="const v=document.getElementById('s_pf').value.trim();if(v){S.pipe.push(v);save();vSet()}">Add process</button>
+ <label>Parallel processes fallback (used if pipeline empty)</label><input type="number" id="s_par" value="${S.set.par}" min="0" max="4">
  <label>Current comp ($k/yr)</label><input type="number" id="s_base" value="${S.set.base}">
  <label>Target comp ($k/yr)</label><input type="number" id="s_tgt" value="${S.set.target}">
  <label>Horizon (years) for EV model</label><input type="number" id="s_h" value="${S.set.horizon}">
