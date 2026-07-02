@@ -214,7 +214,7 @@ const MISSIONS=[
 ];
 /* Chauffeur prompts: mission id → what the Coach walks him through */
 const CHAUF={
- m_resume:"Chauffeur me through finishing my resume. Interview me ONE question at a time for the four open items: (1) the 2-3 real mechanisms of my research process (pre-registration? holdout governance? multiple-testing budgets? post-mortems? — ask what we actually do), (2) whether I have a time-to-first-production-signal metric, (3) my competitive interests (poker/chess/games — only if true), (4) a one-line explanation of the overlapping-roles question on my resume. Then output the finished resume bullets ready to paste.",
+ m_resume:"Chauffeur me through finishing my resume. Interview me ONE question at a time for the four open items: (1) the 2-3 real mechanisms of my research process (pre-registration? holdout governance? multiple-testing budgets? post-mortems? — ask what we actually do), (2) whether I have a time-to-first-production-signal metric, (3) my competitive interests (poker/chess/games — only if true), (4) a one-line explanation of the overlapping-roles question on my resume. Then output the finished resume lines as final copy — we finish entirely here.",
  m_call:"Chauffeur my referrer call: first draft the text I send to book it, then walk me through the agenda from my playbook one section at a time, then role-play as my referrer so I can practice.",
  m_pkg:"Chauffeur shipping my package: give me the checklist from my playbook, then draft the exact email to my contact — bowling-lane framing paragraph included — ready to paste.",
  m_comp:"Chauffeur my compliance check: draft a short, safely-worded note to my current employer's compliance team asking whether I can reference the publicly-covered ML program's impact in interviews. Then tell me who to send it to and how to follow up.",
@@ -225,7 +225,7 @@ const CHAUF={
  m_proc:"Chauffeur my first parallel process: search the web for current openings at my tier-1 firms (playbook job_search_queries), pick the best two, and draft the exact next step for each.",
  m_mock:"Chauffeur booking a paid mock: search for coaching services with ex-prop-firm traders, give me the best options with links and prices, and draft the brief I send the coach from my playbook.",
  m_fire:"Chauffeur my live-fire interview: ask me where each pipeline process stands, pick which should give me my first at-bat, and draft the message that moves it to a scheduled interview.",
- m_date:"Chauffeur getting the SIG date: ask me where the process stands, then draft the calibrated nudge to my referrer or contact about timeline."};
+ m_date:"Chauffeur getting the target-firm interview date: ask me where the process stands, then draft the calibrated nudge to my referrer or contact about timeline."};
 /* ---- Chauffeur wizards: pre-written artifact + deep link that OPENS the destination + witness gate ---- */
 const enc=encodeURIComponent;
 const pbs=id=>{const s=(PB?.scripts||[]).find(x=>x.id===id);return s?s.body:"🔒 Unlock your playbook on the Today screen first — then this draft appears here."};
@@ -235,7 +235,7 @@ const WIZ={
   {s:"Question 2 — do you have a talent metric? Anything like 'median time from hire to first production signal'? If none, type 'none'.",w:"Your answer:"},
   {s:"Question 3 — competitive interests: poker, chess, anything? Only if TRUE. If none, type 'none'.",w:"Your answer:"},
   {s:"Question 4 — the overlapping-roles question on my resume. One honest line (e.g. 'concurrent advisory role while transitioning').",w:"Your one-liner:"},
-  {s:"Done — now get these answers to Claude to finalize the resume. Tap below: an email to yourself opens with everything pre-filled. Send it, then paste it to Claude at your desk.",l:["Email my answers to myself",()=>"mailto:?subject="+enc("Resume answers for Claude")+"&body="+enc((S.rcpt.m_resume||[]).map((r,i)=>"Q"+(i+1)+": "+r.t).join("\n\n"))],w:"Type SENT once it's on its way:"}],
+  {s:"All four answers witnessed. Now finalize right here — the AI takes your answers, asks follow-ups if anything's fuzzy, and produces copy-ready resume lines. No email, no pasting, ever.",ai:1,w:"Type DONE once you have the FINAL lines:"}],
  m_call:[
   {s:"Book it — right now. The text is written. Tap, pick your referrer, hit send.",a:"Hey — could I grab 30 min this week to pick your brain before I send my stuff in? Want to make sure I aim it right.",l:["Open Messages",()=>"sms:?&body="+enc("Hey — could I grab 30 min this week to pick your brain before I send my stuff in? Want to make sure I aim it right.")],w:"Paste what you actually sent:"},
   {s:"Before the call: read the agenda once, slowly. The routing questions are the whole game.",a:()=>pbs("referrer_call"),w:"Type OK once you've read it:"},
@@ -269,7 +269,8 @@ const WIZ={
   {s:"Nudge for the date. Calibrated, light, written for you — tap and send to your contact.",a:"Hey — checking in on timeline. Anything else I can send over to keep things moving on your side?",l:["Open Messages",()=>"sms:?&body="+enc("Hey — checking in on timeline. Anything else I can send over to keep things moving on your side?")],w:"Paste what you sent + any reply:"}]
 };
 let wz=null,wzStep=0;
-function chauffeur(id){const w=WIZ[id];if(w){wz={id,steps:w};wzStep=0;vWiz();return}
+function chauffeur(id){if(wz&&wz.id===id){vWiz();return}
+ const w=WIZ[id];if(w){wz={id,steps:w};wzStep=0;vWiz();return}
  if(!S.set.key){tab="coach";nav();vCoach();return}
  const m=MISSIONS.find(x=>x.id===id);tab="coach";nav();vCoach();
  send(CHAUF[id]||("Chauffeur me step-by-step through this mission: \""+m.t+"\" — "+m.w))}
@@ -282,10 +283,19 @@ function vWiz(){const st=wz.steps[wzStep],n=wz.steps.length,m=MISSIONS.find(x=>x
   <div class="q" style="font-size:16px">${st.s}</div>
   ${art?`<div class="a" id="wart" style="user-select:all">${art.replace(/</g,"&lt;")}</div><button class="btn sec small" onclick="navigator.clipboard.writeText(document.getElementById('wart').innerText);this.textContent='Copied ✓'">Copy</button>`:""}
   ${href?`<a class="btn" style="margin-top:10px;text-decoration:none;display:block" href="${href}" ${href.startsWith("http")?'target="_blank" rel="noopener"':""}>${st.l[0]} ↗</a>`:""}
-  ${st.w?`<div class="note" style="margin-top:12px"><b>Witness:</b> ${st.w}</div><textarea id="wwit" style="width:100%;height:64px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:14px;margin-top:4px" oninput="document.getElementById('wnext').disabled=this.value.trim().length<2"></textarea>`:""}
+  ${st.ai&&S.set.key?`<button class="btn" style="margin-top:10px;background:var(--violet)" onclick="wizTalk(1)">✨ Finalize with AI — talk it through</button>`:""}
+  ${st.w?`<div class="note" style="margin-top:12px"><b>Witness:</b> ${st.w}</div><div class="row" style="margin-top:4px"><textarea id="wwit" style="flex:1;height:64px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:14px" oninput="document.getElementById('wnext').disabled=this.value.trim().length<2"></textarea><button class="btn sec small" style="flex:0 0 52px" onclick="micTo('wwit',this)">🎤</button></div>`:""}
+  ${st.w&&!st.ai&&S.set.key?`<button class="btn sec small" style="margin-top:8px" onclick="wizTalk(0)">🎙️ Talk it through with AI (follow-ups & iteration)</button>`:""}
   <button class="btn" id="wnext" style="margin-top:12px" ${st.w?"disabled":""} onclick="wizNext()">${wzStep===n-1?"Finish — witnessed & done":"Next step"}</button>
  </div>
- <button class="btn sec small" onclick="go('today')">Pause (come back anytime)</button>`}
+ <button class="btn sec small" onclick="go('today')">Pause (progress kept)</button>`}
+function wizTalk(fin){const m=MISSIONS.find(x=>x.id===wz.id),st=wz.steps[wzStep];
+ const cur=(document.getElementById("wwit")||{}).value||"";
+ const rc=(S.rcpt[wz.id]||[]).map((r,i)=>"("+(i+1)+") "+r.t).join("  ");
+ const p=fin
+  ?"Mission: \""+m.t+"\". My witnessed answers so far: "+rc+(cur?"  Current draft: "+cur:"")+"  Interview me with follow-up questions ONE at a time wherever an answer is fuzzy or weak, iterate with me, then produce the final copy-ready output for this mission prefixed FINAL. We finish entirely in this chat — never tell me to email, paste, or go anywhere else."
+  :"Mission: \""+m.t+"\". Current step: "+st.s+"  My draft answer: \""+(cur||"none yet")+"\". Interview me ONE question at a time to sharpen it. When it's good, give the final text prefixed FINAL. Never tell me to email or paste anything.";
+ tab="coach";nav();vCoach();send(p)}
 function wizNext(){const st=wz.steps[wzStep];
  if(st.w){const t=document.getElementById("wwit").value.trim();(S.rcpt[wz.id]=S.rcpt[wz.id]||[]).push({s:wzStep,t,ts:TODAY()})}
  wzStep++;
@@ -627,9 +637,33 @@ function vQ(){
  <div class="card"><div class="q">${d.q}</div>
  ${d.mc?`<div class="mc">${d.mc.map((c,i)=>`<button onclick="mcPick(${i})">${c}</button>`).join("")}</div>`:`
  ${askConf?`<div class="note">Before you answer — how confident will you be?</div><div class="confrow" id="confrow">${[50,70,90,99].map(c=>`<button onclick="setConf(${c},this)">${c}%</button>`).join("")}</div>`:""}
- <button class="btn sec" id="rev" onclick="reveal()">Answer out loud, then reveal</button>
+ <div class="row" style="margin-top:6px"><textarea id="dans" placeholder="Speak or type your answer…" style="flex:1;height:72px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:14px"></textarea><button class="btn sec small" style="flex:0 0 52px" onclick="micTo('dans',this)">🎤</button></div>
+ <div class="row" style="margin-top:8px">${S.set.key?`<button class="btn small" onclick="aiGrade()">🤖 Grade my answer</button>`:""}<button class="btn sec small" id="rev" onclick="reveal()">Reveal (self-grade)</button></div>
  <div id="ansbox"></div>`}
  </div>`}
+let aiFU="";
+async function aiGrade(){const d=queue[qi];const my=((document.getElementById("dans")||{}).value||"").trim();
+ if(!my){alert("Answer first — tap the mic and say it, or type.");return}
+ const box=document.getElementById("ansbox");box.innerHTML='<div class="a">🤖 grading…</div>';
+ try{
+  const txt=await api('You grade trading-interview drill answers. Respond ONLY with JSON: {"g":0|1|2,"fb":"2-3 sentences of direct second-person feedback","fu":"one probing follow-up question, or empty string if the answer was complete"}. g=2 correct and complete, 1 partially right, 0 wrong or missing the core idea. Grade like a trading-firm interviewer: precision matters, hand-waving caps at 1.',
+   [{role:"user",content:"Question: "+d.q+"\nReference answer: "+d.a+"\nCandidate's answer: "+my}],400);
+  const g=JSON.parse(txt.match(/\{[\s\S]*\}/)[0]);aiFU=g.fu||"";
+  box.innerHTML=`<div class="a" style="border-left:3px solid ${g.g===2?"var(--good)":g.g===1?"var(--warn)":"var(--bad)"}"><b>${g.g===2?"✓ Got it":g.g===1?"~ Close":"✗ Miss"}</b> — ${esc(g.fb)}</div><div class="a">${esc(d.a)}</div>
+  ${g.fu?`<div class="note" style="margin-top:6px"><b>Follow-up:</b> ${esc(g.fu)}</div><div class="row" style="margin-top:4px"><textarea id="fua" placeholder="Answer the follow-up…" style="flex:1;height:60px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:14px"></textarea><button class="btn sec small" style="flex:0 0 52px" onclick="micTo('fua',this)">🎤</button></div><div class="row" style="margin-top:8px"><button class="btn small" onclick="fuSend(${g.g})">Answer it</button><button class="btn sec small" onclick="ans(${g.g})">Skip — continue</button></div>`
+   :`<button class="btn" style="margin-top:8px" onclick="ans(${g.g})">Continue</button>`}`;
+  speak(g.fb+(g.fu?" Follow-up: "+g.fu:""));
+ }catch(e){box.innerHTML='<div class="a">Grading failed — self-grade instead.</div>';reveal()}}
+async function fuSend(g0){const d=queue[qi];const my=((document.getElementById("fua")||{}).value||"").trim();if(!my)return;
+ const box=document.getElementById("ansbox");const old=box.innerHTML;box.innerHTML='<div class="a">🤖 checking follow-up…</div>';
+ try{
+  const txt=await api('You grade a follow-up answer in a trading-interview drill. Respond ONLY with JSON: {"ok":true|false,"fb":"1-2 sentences of direct feedback"}.',
+   [{role:"user",content:"Original question: "+d.q+"\nReference: "+d.a+"\nFollow-up question asked: "+aiFU+"\nCandidate's follow-up answer: "+my}],250);
+  const r=JSON.parse(txt.match(/\{[\s\S]*\}/)[0]);
+  const fin=r.ok?Math.min(2,g0+ (g0<2?1:0)):Math.max(0,g0-1);
+  box.innerHTML=`<div class="a" style="border-left:3px solid ${r.ok?"var(--good)":"var(--bad)"}"><b>${r.ok?"✓ Nailed the follow-up":"✗ Follow-up missed"}</b> — ${esc(r.fb)}</div><button class="btn" style="margin-top:8px" onclick="ans(${fin})">Continue</button>`;
+  speak(r.fb);
+ }catch(e){box.innerHTML=old}}
 function setConf(c,el){conf=c;document.querySelectorAll("#confrow button").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
 function reveal(){if(revealed)return;revealed=true;const d=queue[qi];
  document.getElementById("ansbox").innerHTML=`<div class="a">${d.a}</div>
@@ -721,8 +755,9 @@ function vCoach(){
    .map(c=>`<button class="chip" style="white-space:nowrap;cursor:pointer" onclick="send(${JSON.stringify(c[1]).replace(/"/g,"&quot;")})">${c[0]}</button>`).join("")}
  </div>
  <div class="chat" id="chat">${chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${m.content.replace(/</g,"&lt;")}</div>`).join("")||`<div class="msg ai">Ready. Tap a chip, or say "drill me", "mock interview", "find me jobs", "draft my reply to this recruiter: …"${PB?"":"<br><br>🔒 Playbook locked — one-time unlock on the Today screen enables drafting in your voice."}</div>`}</div>
- <div class="chatin"><textarea id="ci" placeholder="Message…"></textarea>${window.webkitSpeechRecognition||window.SpeechRecognition?`<button onclick="mic()" id="micb">🎤</button>`:""}<button onclick="send()">➤</button></div>
- <div class="note"><label><input type="checkbox" ${S.set.voice?"checked":""} onchange="S.set.voice=this.checked;save()"> speak replies aloud</label></div>`;
+ <div class="chatin"><textarea id="ci" placeholder="Message…"></textarea>${window.webkitSpeechRecognition||window.SpeechRecognition?`<button onclick="micTo(null,this,t=>send(t))" id="micb">🎤</button>`:""}<button onclick="send()">➤</button></div>
+ <div class="note"><label><input type="checkbox" ${S.set.voice?"checked":""} onchange="S.set.voice=this.checked;save()"> speak replies</label> · <label><input type="checkbox" ${handsFree?"checked":""} onchange="handsFree=this.checked;localStorage.el_hf=this.checked?'1':'0';if(this.checked){S.set.voice=true;save()};vCoach()"> 🎙️ hands-free (auto-listens after each reply)</label></div>
+ ${wz?`<button class="btn sec small" style="margin-top:8px" onclick="vWiz()">↩ Back to mission step ${wzStep+1}</button>`:""}`;
  const c=document.getElementById("chat");c.scrollTop=c.scrollHeight;window.scrollTo(0,document.body.scrollHeight)}
 async function send(txt){
  const el=document.getElementById("ci");const t=(txt||(el?el.value:"")).trim();if(!t)return;if(el)el.value="";
@@ -740,11 +775,23 @@ async function send(txt){
   while(j.stop_reason==="pause_turn"&&hops<4){msgs=[...msgs,{role:"assistant",content:j.content}];j=await call(msgs);hops++}
   const out=j.content?j.content.filter(b=>b.type==="text").map(b=>b.text).join(""):(j.error?.message||"error");
   chat[chat.length-1].content=out;vCoach();
-  if(S.set.voice&&window.speechSynthesis){const u=new SpeechSynthesisUtterance(out);u.rate=1.05;speechSynthesis.speak(u)}
+  speak(out,()=>{if(handsFree&&tab==="coach")micTo(null,document.getElementById("micb"),t=>send(t))})
  }catch(e){chat[chat.length-1].content="Network error: "+e.message;vCoach()}}
-function mic(){const R=window.SpeechRecognition||window.webkitSpeechRecognition;const r=new R();r.lang="en-US";
- document.getElementById("micb").textContent="…";
- r.onresult=e=>{send(e.results[0][0].transcript)};r.onend=()=>{const b=document.getElementById("micb");if(b)b.textContent="🎤"};r.start()}
+let rec=null,handsFree=localStorage.el_hf==="1";
+function micTo(elId,btn,onDone){const R=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!R){alert("No speech recognition in this browser — Chrome works best. You can type instead.");return}
+ if(rec){try{rec.stop()}catch(e){}rec=null;if(btn)btn.textContent="🎤";return}
+ rec=new R();rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=1;
+ if(btn)btn.textContent="🔴";
+ rec.onresult=e=>{const t=e.results[0][0].transcript;
+  if(elId){const el=document.getElementById(elId);if(el){el.value=(el.value?el.value+" ":"")+t;el.dispatchEvent(new Event("input"))}}
+  if(onDone)onDone(t)};
+ rec.onerror=()=>{};
+ rec.onend=()=>{if(btn)btn.textContent="🎤";rec=null};
+ try{rec.start()}catch(e){rec=null}}
+function speak(txt,onend){if(!S.set.voice||!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(txt);u.rate=1.05;if(onend)u.onend=onend;speechSynthesis.speak(u)}
+async function api(system,messages,max=500){const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":S.set.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-opus-4-8",max_tokens:max,system,messages})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.content.filter(b=>b.type==="text").map(b=>b.text).join("")}
+const esc=s=>String(s).replace(/</g,"&lt;");
 
 /* ---------- ME ---------- */
 function vMe(){
@@ -776,7 +823,7 @@ function vMe(){
 function vSet(){
  V.innerHTML=`<div class="card"><div class="q">Settings</div>
  <label>Anthropic API key (coach)</label><input type="password" id="s_key" value="${S.set.key}">
- <label>Playbook ${PB?'<span style="color:var(--good)">✓ imported ('+((PB.scripts||[]).length)+' scripts, '+((PB.answers||[]).length)+' answers)</span>':"— paste playbook.json contents (one time, stays on device)"}</label>
+ <label>Playbook ${PB?'<span style="color:var(--good)">✓ unlocked ('+((PB.scripts||[]).length)+' scripts, '+((PB.answers||[]).length)+' answers)</span>':"🔒 locked — unlock card is on the Today screen (fallback manual import below)"}</label>
  <textarea id="s_pb" style="width:100%;height:70px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:12px;margin:4px 0 6px" placeholder='{"profile":..., "scripts":[...]}'></textarea>
  <button class="btn sec small" style="margin-bottom:12px" onclick="const t=document.getElementById('s_pb').value.trim();if(t&&pbSave(t))vSet()">Import playbook</button>
  <label>Pipeline — live processes (drives odds; beats the number below)</label>
