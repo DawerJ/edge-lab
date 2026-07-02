@@ -174,10 +174,10 @@ const DRILLS=[
 ["DL7","Why are evals 'the discipline' for agents?","Errors compound over long horizons; harnesses and verification matter more than model choice. Agent evals today ≈ backtests in 2005: everyone overfits them, few govern them."],
 ["DL9","Where do LLMs demonstrably help a trading firm, and where should you be skeptical?","Help: research acceleration (code/lit/data), NLP signal extraction at scale, structured extraction. Skeptical: end-to-end 'LLM predicts returns' (leakage, nonstationarity), time-series foundation models (weak evidence so far)."],
 ["SIG1","SIG in 30 seconds — founding, HQ, business, culture.","Founded 1987 by Jeff Yass + five co-founders (college poker friends). HQ Bala Cynwyd, PA. Among the world's largest options market makers (equity/ETF/index). Poker is literally in trader training; house epistemology = EV + calibration. VC arm famously seeded ByteDance."],
-["SIG1","Why does the Vanguard→SIG contrast matter in your story?","Vanguard: other people's money, decade horizons, slow loops. SIG: own capital, seconds-to-months horizons, brutal fast feedback. You want faster loops — say so."],
+["SIG1","Why does the asset-manager→prop-firm contrast matter in your story?","Asset manager: other people's money, decade horizons, slow loops. SIG: own capital, seconds-to-months horizons, brutal fast feedback. You want faster loops — say so."],
 ["SIG2","Name the three fastest ways to fail a SIG interview.","(1) Overconfidence / miscalibration — the cardinal sin; (2) bluffing knowledge they can depth-probe; (3) outcome-based reasoning ('it worked so it was right')."],
 ["SIG2","Interviewer: 'How confident are you? Would you bet $1,000 at those odds?' What's the right move?","Give a number with error bars and mean it — or revise to odds you WOULD take. Calibrated-but-wrong beats lucky-but-overconfident. Never refuse to commit; never inflate."],
-["PIT5","They attack: 'Half the department's excess return was YOUR model? How do you know? Would you bet on it?'","Explain the attribution methodology level-headed: how contribution was measured, what's public (Vanguard's own ML coverage), what the error bars are, and give calibrated confidence — this question is a calibration test wearing a finance costume."],
+["PIT5","They attack: 'Half the department's excess return was YOUR model? How do you know? Would you bet on it?'","Explain the attribution methodology level-headed: how contribution was measured, what's public (the firm's own published coverage), what the error bars are, and give calibrated confidence — this question is a calibration test wearing a finance costume."],
 ["PIT4","Deliver your derivatives-gap answer in ~30 seconds, out loud.","Honest level → exactly what you've done about it (Natenberg, daily greeks/MM drills, vol surface) → why the process transfers anyway (epistemology not asset class) → equities→FI already proven. Calibration + fast learning IS the demo."],
 ["PIT1","Deliver the 30-second pitch, out loud, right now.","Self-grade against: industrializes alpha research / repeatable process / 20+ team, 10+ prod models / personally a researcher first / why SIG (decision science, faster loops) / calibrated gap statement."]
 ];
@@ -214,10 +214,10 @@ const MISSIONS=[
 ];
 /* Chauffeur prompts: mission id → what the Coach walks him through */
 const CHAUF={
- m_resume:"Chauffeur me through finishing my resume. Interview me ONE question at a time for the four open items: (1) the 2-3 real mechanisms of my research process (pre-registration? holdout governance? multiple-testing budgets? post-mortems? — ask what we actually do), (2) whether I have a time-to-first-production-signal metric, (3) my competitive interests (poker/chess/games — only if true), (4) a one-line explanation of the Vertex Labs / Vanguard date overlap. Then output the finished resume bullets ready to paste.",
+ m_resume:"Chauffeur me through finishing my resume. Interview me ONE question at a time for the four open items: (1) the 2-3 real mechanisms of my research process (pre-registration? holdout governance? multiple-testing budgets? post-mortems? — ask what we actually do), (2) whether I have a time-to-first-production-signal metric, (3) my competitive interests (poker/chess/games — only if true), (4) a one-line explanation of the overlapping-roles question on my resume. Then output the finished resume bullets ready to paste.",
  m_call:"Chauffeur my referrer call: first draft the text I send to book it, then walk me through the agenda from my playbook one section at a time, then role-play as my referrer so I can practice.",
  m_pkg:"Chauffeur shipping my package: give me the checklist from my playbook, then draft the exact email to my contact — bowling-lane framing paragraph included — ready to paste.",
- m_comp:"Chauffeur my compliance check: draft a short, safely-worded note to Vanguard compliance asking whether I can reference the publicly-covered ML program's impact in interviews. Then tell me who to send it to and how to follow up.",
+ m_comp:"Chauffeur my compliance check: draft a short, safely-worded note to my current employer's compliance team asking whether I can reference the publicly-covered ML program's impact in interviews. Then tell me who to send it to and how to follow up.",
  m_link:"Chauffeur my LinkedIn refresh: write my new headline and About section from my playbook, then tell me exactly where to add the two public articles as Featured items.",
  m_recr:"Chauffeur my recruiter replies: I'll paste inbound messages and you draft each reply. If I have none handy, draft proactive outreach to two quant-specialist headhunters instead, from my playbook script.",
  m_law:"Chauffeur the lawyer step: list the documents I need to gather, draft the email to a Philadelphia employment lawyer describing my situation (senior exec, asset manager to prop firm, non-compete/IP review), and tell me how to find the right one.",
@@ -234,7 +234,7 @@ const WIZ={
   {s:"Question 1 of 4 — your research process. What are the 2–3 mechanisms your team ACTUALLY runs? (pre-registration? holdout governance? multiple-testing budgets? post-mortems?)",w:"Type the honest answer:"},
   {s:"Question 2 — do you have a talent metric? Anything like 'median time from hire to first production signal'? If none, type 'none'.",w:"Your answer:"},
   {s:"Question 3 — competitive interests: poker, chess, anything? Only if TRUE. If none, type 'none'.",w:"Your answer:"},
-  {s:"Question 4 — the Vertex Labs / Vanguard date overlap. One honest line (e.g. 'concurrent advisory role while transitioning').",w:"Your one-liner:"},
+  {s:"Question 4 — the overlapping-roles question on my resume. One honest line (e.g. 'concurrent advisory role while transitioning').",w:"Your one-liner:"},
   {s:"Done — now get these answers to Claude to finalize the resume. Tap below: an email to yourself opens with everything pre-filled. Send it, then paste it to Claude at your desk.",l:["Email my answers to myself",()=>"mailto:?subject="+enc("Resume answers for Claude")+"&body="+enc((S.rcpt.m_resume||[]).map((r,i)=>"Q"+(i+1)+": "+r.t).join("\n\n"))],w:"Type SENT once it's on its way:"}],
  m_call:[
   {s:"Book it — right now. The text is written. Tap, pick your referrer, hit send.",a:"Hey — could I grab 30 min this week to pick your brain before I send my stuff in? Want to make sure I aim it right.",l:["Open Messages",()=>"sms:?&body="+enc("Hey — could I grab 30 min this week to pick your brain before I send my stuff in? Want to make sure I aim it right.")],w:"Paste what you actually sent:"},
@@ -296,7 +296,7 @@ const PITCHES=[
 ["30-second pitch","Industrializes alpha research → repeatable process → 20+ team / 10+ production models → researcher first → why SIG (decision science, faster loops) → calibrated derivatives-gap statement.",30],
 ["2-minute pitch","Arc: researcher → bottleneck is process → built the factory. Concrete example. Equities→FI transfer. Why SIG + local. Calibrated self-assessment.",120],
 ["Why-SIG answer","Decision science as the product; options = purest uncertainty; faster feedback loops; it's my city.",45],
-["Attribution defense","How was ~50% contribution measured? Public Vanguard coverage + methodology at principle level + error bars + confidence number.",60],
+["Attribution defense","How was ~50% contribution measured? Public press coverage + methodology at principle level + error bars + confidence number.",60],
 ["Gap answer","Honest level → what I've done for N weeks → why the process transfers → equities→FI proof.",40],
 ["Kill-story","A research bet you folded: EV of continuing < EV of folding. Graded as decision, not outcome.",60]
 ];
@@ -400,7 +400,7 @@ const LESSONS=[
 {id:"L13",title:"SIG & the interview",dom:"SIG",kcs:["SIG1","SIG2"],chunks:[
  {t:"<b>The firm:</b> founded 1987, Jeff Yass + five co-founders (college poker friends). HQ Bala Cynwyd. Among the largest options MMs on earth. Private, own capital. VC arm seeded ByteDance."},
  {t:"<b>The culture:</b> decision science is the brand. Poker in trader training. Vocabulary that lands: edge, EV, variance, calibration, folding, adverse selection. Vocabulary that doesn't: stakeholder alignment, transformation journey."},
- {q:["The Vanguard→SIG contrast, as a selling point?","Vanguard: others' money, decade horizons. SIG: own money, seconds-to-months, brutal fast feedback. 'I want faster loops' — mean it."]},
+ {q:["The asset-manager→prop-firm contrast, as a selling point?","Asset manager: others' money, decade horizons. Prop firm: own money, seconds-to-months, brutal fast feedback. 'I want faster loops' — mean it."]},
  {t:"<b>Interview pattern:</b> probability & EV games → make-a-market → calibration probes ('would you bet on it?') → mental math → for you: research-process deep-dives + 'how would you ML our market making?'"},
  {q:["Three fastest ways to fail?","Overconfidence (cardinal sin), bluffing depth-probeable knowledge, outcome-based reasoning."]},
  {t:"Poker knowledge NOT required; poker <b>thinking</b> is. Wrong-but-calibrated beats right-but-overconfident. Every strong claim: confidence number + falsifier."}
