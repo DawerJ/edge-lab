@@ -450,7 +450,7 @@ const TODAY=()=>new Date().toISOString().slice(0,10);
 const DAY=86400000;
 let S;
 let PB=null;try{PB=JSON.parse(localStorage.el_pb||"null")}catch(e){}
-function pbSave(txt){try{PB=JSON.parse(txt);localStorage.el_pb=JSON.stringify(PB);return true}catch(e){alert("Not valid JSON: "+e.message);return false}}
+function pbSave(txt){try{PB=JSON.parse(txt);localStorage.el_pb=JSON.stringify(PB);if(typeof syncBind==="function")syncBind();return true}catch(e){alert("Not valid JSON: "+e.message);return false}}
 let PBC=null;
 fetch("pb.enc").then(r=>r.ok?r.text():null).then(t=>{PBC=t?t.trim():null;if(!PB&&PBC)render()}).catch(()=>{});
 async function pbUnlock(){
@@ -472,7 +472,23 @@ function load(){try{S=Object.assign(defaults(),JSON.parse(localStorage.el||"{}")
  if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
  if(S.evStart===null)S.evStart=oddsAny();
  save()}
-function save(){localStorage.el=JSON.stringify(S)}
+function save(push=true){S.ts=Date.now();localStorage.el=JSON.stringify(S);if(push&&SYNCU)schedPush()}
+/* ---- cloud sync (URL lives in encrypted playbook; key never leaves device) ---- */
+let SYNCU=null,pushT=null;
+function syncBind(){SYNCU=(PB&&PB.sync&&PB.sync.state)||null;if(SYNCU)pullState()}
+function schedPush(){clearTimeout(pushT);pushT=setTimeout(pushState,1500)}
+function pushState(){if(!SYNCU)return;const body={...S,set:{...S.set,key:""}};
+ fetch(SYNCU,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)}).catch(()=>{})}
+async function pullState(){if(!SYNCU)return;try{
+ const r=await fetch(SYNCU);const j=await r.json();
+ if(j&&j.ts&&j.ts>(S.ts||0)){const k=S.set.key;
+  S=Object.assign(defaults(),j);
+  S.set=Object.assign(defaults().set,j.set||{});if(k)S.set.key=k;
+  S.kc=Object.assign(defaults().kc,j.kc||{});
+  if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
+  localStorage.el=JSON.stringify(S);render()}
+ }catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SYNCU)pullState()});
 
 /* ============================== MODELS ============================== */
 function readiness(){const dom={};for(const[k,m]of Object.entries(KC)){(dom[m[1]]=dom[m[1]]||[]).push(S.kc[k].lv/4)}
@@ -529,7 +545,7 @@ function vToday(){
   <div class="tile"><div class="lab">Offer odds*</div><div class="val" style="color:var(--blue)">${p}%</div><div class="sub">SIG alone: ${ps}%</div></div>
   <div class="tile"><div class="lab">EV banked*</div><div class="val" style="color:var(--good)">+${fmt$(evDelta())}</div><div class="sub">since day one</div></div>
  </div>
- ${(PBC&&(!PB||!PB.assets))?unlockCard(!!PB):""}
+ ${(PBC&&(!PB||!PB.sync))?unlockCard(!!PB):""}
  ${missionCard()}
  <div class="card">
   <h2 style="margin-top:0">Today's quests ${questsDone()?"✅":""}</h2>
@@ -894,7 +910,7 @@ function vSet(){
  <div class="note" style="margin-top:10px">All data lives in this browser only. <span style="color:var(--bad)" onclick="if(confirm('Wipe all progress?')){localStorage.removeItem('el');location.reload()}">Reset everything</span></div></div>`}
 
 /* ============================== BOOT ============================== */
-load();nav();render();
+load();nav();render();syncBind();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
