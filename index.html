@@ -545,7 +545,7 @@ function vToday(){
   <div class="tile"><div class="lab">Offer odds*</div><div class="val" style="color:var(--blue)">${p}%</div><div class="sub">SIG alone: ${ps}%</div></div>
   <div class="tile"><div class="lab">EV banked*</div><div class="val" style="color:var(--good)">+${fmt$(evDelta())}</div><div class="sub">since day one</div></div>
  </div>
- ${(PBC&&(!PB||!PB.sync))?unlockCard(!!PB):""}
+ ${(PBC&&(!PB||!PB.briefing))?unlockCard(!!PB):""}
  ${missionCard()}
  <div class="card">
   <h2 style="margin-top:0">Today's quests ${questsDone()?"✅":""}</h2>
@@ -807,7 +807,7 @@ CRITICAL: knowledge is not his bottleneck — execution is. Undone real-world mi
 Campaign state — assets: resume score ${S.scores.resume?S.scores.resume.v+"/100":"unscored"}, cover letter ${S.scores.cover_letter?S.scores.cover_letter.v+"/100":"unscored"}. CRM: ${(S.crm||[]).length} contacts, ${(S.crm||[]).filter(c=>c.st>=1).length} replied, ${(S.crm||[]).filter(c=>c.st>=3).length} live processes, ${(S.crm||[]).filter(c=>c.st>=4).length} interviews.
 YOU OPERATE THE APP — you have tools. When he mentions outreach, replies, calls, or interviews: log_contact / advance_contact yourself, immediately. When he confirms a real-world mission action happened: complete_mission with a receipt sentence. When he gives answers worth keeping (resume items, call notes, comp bands heard): save_note. Use get_state when unsure. DO the bookkeeping — never tell him to go tap something you can do yourself. Confirm each action in a few words.
 You also have web search: use it to find live job postings (lane + target firms are in the playbook's job_search_queries), to check firms and interviewers before calls, and to verify market facts. When listing roles, give title, firm, location, and link, and say which mission it advances.
-${PB?`HIS PLAYBOOK (use to draft outreach/resumes/answers in HIS voice; adapt, don't invent facts): ${JSON.stringify(PB).slice(0,14000)}`:"No playbook imported yet — for drafting tasks, remind him to import it in Settings."}`}
+${PB?`HIS BRIEFING + PLAYBOOK (ground truth — use to evaluate postings/resume and draft in HIS voice; don't invent facts): ${JSON.stringify({briefing:PB.briefing,profile:PB.profile,scripts:PB.scripts,answers:PB.answers,assets:PB.assets}).slice(0,30000)}`:"Playbook locked — for drafting tasks, remind him to unlock on the Today screen."}`}
 function vCoach(){
  if(!S.set.key){V.innerHTML=`<div class="card"><div class="q">Coach needs a key</div><div class="note">One-time: paste an Anthropic API key (console.anthropic.com → API keys). Stored only on this device, sent only to api.anthropic.com. A month of heavy coaching ≈ a few dollars.</div>
  <input type="password" id="ak" placeholder="sk-ant-...">
@@ -849,19 +849,23 @@ async function send(txt){
   chat[chat.length-1].content=out;localStorage.el_chat=JSON.stringify(chat.slice(-40));vCoach();
   speak(out,()=>{if(handsFree&&tab==="coach")micTo(null,document.getElementById("micb"),t=>send(t))})
  }catch(e){chat[chat.length-1].content="Network error: "+e.message;vCoach()}}
-let rec=null,handsFree=localStorage.el_hf==="1";
+let rec=null,handsFree=localStorage.el_hf==="1",wl=null;
+async function wlOn(){try{if(!wl&&navigator.wakeLock)wl=await navigator.wakeLock.request("screen")}catch(e){}}
+function wlOff(){try{if(wl){wl.release();wl=null}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&(rec||handsFree&&tab==="coach"))wlOn()});
 function micTo(elId,btn,onDone){const R=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!R){alert("No speech recognition in this browser — Chrome works best. You can type instead.");return}
  if(rec){try{rec.stop()}catch(e){}rec=null;if(btn)btn.textContent="🎤";return}
  rec=new R();rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=1;
  if(btn)btn.textContent="🔴";
+ wlOn();
  rec.onresult=e=>{const t=e.results[0][0].transcript;
   if(elId){const el=document.getElementById(elId);if(el){el.value=(el.value?el.value+" ":"")+t;el.dispatchEvent(new Event("input"))}}
   if(onDone)onDone(t)};
  rec.onerror=()=>{};
- rec.onend=()=>{if(btn)btn.textContent="🎤";rec=null};
+ rec.onend=()=>{if(btn)btn.textContent="🎤";rec=null;if(!(handsFree&&tab==="coach"))wlOff()};
  try{rec.start()}catch(e){rec=null}}
-function speak(txt,onend){if(!S.set.voice||!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(txt);u.rate=1.05;if(onend)u.onend=onend;speechSynthesis.speak(u)}
+function speak(txt,onend){if(!S.set.voice||!window.speechSynthesis)return;wlOn();const u=new SpeechSynthesisUtterance(txt);u.rate=1.05;if(onend)u.onend=onend;speechSynthesis.speak(u)}
 async function api(system,messages,max=500){const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":S.set.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-opus-4-8",max_tokens:max,system,messages})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.content.filter(b=>b.type==="text").map(b=>b.text).join("")}
 const esc=s=>String(s).replace(/</g,"&lt;");
 
