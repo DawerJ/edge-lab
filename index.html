@@ -493,6 +493,16 @@ async function pullState(){if(!SYNCU)return;try{
   localStorage.el=JSON.stringify(S);render()}
  }catch(e){}}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SYNCU){pullState();pullPB()}});
+/* ---- automatic bug reporting ---- */
+const APPV="v13";
+function bugReport(src,summary,details){try{
+ if(!SYNCU)return;const key=src+"|"+String(summary).slice(0,80);
+ if(localStorage.el_lastbug===key)return;localStorage.el_lastbug=key;
+ fetch(SYNCU.replace("/state/","/bug/"),{method:"POST",headers:{"content-type":"application/json"},
+  body:JSON.stringify({src:"edgelab-"+src,summary:String(summary).slice(0,300),details:"app "+APPV+" tab="+tab+" :: "+String(details||"").slice(0,1000)})}).catch(()=>{})
+}catch(e){}}
+window.addEventListener("error",e=>bugReport("js",e.message,(e.filename||"")+":"+(e.lineno||"")+" "+((e.error&&e.error.stack)||"").slice(0,400)));
+window.addEventListener("unhandledrejection",e=>bugReport("promise",(e.reason&&e.reason.message)||String(e.reason),((e.reason&&e.reason.stack)||"").slice(0,400)));
 
 /* ============================== MODELS ============================== */
 function readiness(){const dom={};for(const[k,m]of Object.entries(KC)){(dom[m[1]]=dom[m[1]]||[]).push(S.kc[k].lv/4)}
@@ -620,7 +630,7 @@ async function scoreAsset(id,btn){if(btn)btn.textContent="…";
  try{const out=await api('You score job-application assets for a senior AI-research-leader candidate targeting top proprietary trading firms and multistrat hedge funds. Score HARD: 80+ means ready to send to a top firm today; unresolved placeholders cap the score at 65. Respond ONLY JSON: {"score":0-100,"fx":["three specific highest-impact fixes, ranked"]}.',
   [{role:"user",content:"Asset type: "+id+"\n\n"+PB.assets[id]}],450);
  const g=JSON.parse(out.match(/\{[\s\S]*\}/)[0]);S.scores[id]={v:g.score,fx:g.fx,ts:TODAY()};save();vWar()}
- catch(e){alert("Scoring failed: "+e.message);vWar()}}
+ catch(e){alert("Scoring failed: "+e.message);bugReport("scoreAsset",e.message,"asset="+id);vWar()}}
 function vPlaybook(){if(!PB)return vSet();
  V.innerHTML=`<div class="card"><div class="q">📖 Playbook</div><div class="note">Tap anything to open. Lives only on this device.</div></div>
  <h2>Scripts — what to say</h2><div class="card" style="padding:2px 14px">${(PB.scripts||[]).map(s=>`<div class="lesson" onclick="vScript('${s.id}')"><div class="ttl" style="font-size:14px">${s.title}</div><span class="prog">›</span></div>`).join("")}</div>
@@ -707,7 +717,7 @@ async function aiGrade(){const d=queue[qi];const my=((document.getElementById("d
   ${g.fu?`<div class="note" style="margin-top:6px"><b>Follow-up:</b> ${esc(g.fu)}</div><div class="row" style="margin-top:4px"><textarea id="fua" placeholder="Answer the follow-up…" style="flex:1;height:60px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px;font-size:14px"></textarea><button class="btn sec small" style="flex:0 0 52px" onclick="micTo('fua',this)">🎤</button></div><div class="row" style="margin-top:8px"><button class="btn small" onclick="fuSend(${g.g})">Answer it</button><button class="btn sec small" onclick="ans(${g.g})">Skip — continue</button></div>`
    :`<button class="btn" style="margin-top:8px" onclick="ans(${g.g})">Continue</button>`}`;
   speak(g.fb+(g.fu?" Follow-up: "+g.fu:""));
- }catch(e){box.innerHTML='<div class="a">Grading failed — self-grade instead.</div>';reveal()}}
+ }catch(e){box.innerHTML='<div class="a">Grading failed — self-grade instead.</div>';bugReport("aiGrade",e.message,"drill grading failed");reveal()}}
 async function fuSend(g0){const d=queue[qi];const my=((document.getElementById("fua")||{}).value||"").trim();if(!my)return;
  const box=document.getElementById("ansbox");const old=box.innerHTML;box.innerHTML='<div class="a">🤖 checking follow-up…</div>';
  try{
@@ -852,7 +862,7 @@ async function send(txt){
   const out=(j.content?j.content.filter(b=>b.type==="text").map(b=>b.text).join(""):(j.error?.message||"error"))+(acts.length?"\n\n⚙️ "+acts.join(" · "):"");
   chat[chat.length-1].content=out;localStorage.el_chat=JSON.stringify(chat.slice(-40));vCoach();
   speak(out,()=>{if(handsFree&&tab==="coach")micTo(null,document.getElementById("micb"),t=>send(t))})
- }catch(e){chat[chat.length-1].content="Network error: "+e.message;vCoach()}}
+ }catch(e){chat[chat.length-1].content="Network error: "+e.message;bugReport("coach",e.message,"send() failed");vCoach()}}
 let rec=null,handsFree=localStorage.el_hf==="1",wl=null;
 async function wlOn(){try{if(!wl&&navigator.wakeLock)wl=await navigator.wakeLock.request("screen")}catch(e){}}
 function wlOff(){try{if(wl){wl.release();wl=null}}catch(e){}}
@@ -915,7 +925,12 @@ function vSet(){
  <label>Target comp ($k/yr)</label><input type="number" id="s_tgt" value="${S.set.target}">
  <label>Horizon (years) for EV model</label><input type="number" id="s_h" value="${S.set.horizon}">
  <button class="btn" onclick="S.set.key=document.getElementById('s_key').value.trim();S.set.par=+document.getElementById('s_par').value;S.set.base=+document.getElementById('s_base').value;S.set.target=+document.getElementById('s_tgt').value;S.set.horizon=+document.getElementById('s_h').value;save();go('me')">Save</button>
- <div class="note" style="margin-top:10px">All data lives in this browser only. <span style="color:var(--bad)" onclick="if(confirm('Wipe all progress?')){localStorage.removeItem('el');location.reload()}">Reset everything</span></div></div>`}
+ <button class="btn sec small" style="margin-top:10px" onclick="vBugs()">🐞 Bug reports</button>
+ <div class="note" style="margin-top:10px">Data syncs to your private store when the playbook is unlocked. <span style="color:var(--bad)" onclick="if(confirm('Wipe all progress?')){localStorage.removeItem('el');location.reload()}">Reset everything</span></div></div>`}
+async function vBugs(){let bugs=[];try{bugs=await fetch(SYNCU.replace("/state/","/bug/")).then(r=>r.json())}catch(e){}
+ V.innerHTML=`<div class="card"><div class="q">🐞 Bug reports (${bugs.length})</div><div class="note">Auto-filed by the app, the Claude connector, and the server. Claude (desktop) reads and fixes these.</div></div>`+
+ (bugs.length?bugs.slice().reverse().map(b=>`<div class="card"><b>${esc(b.summary)}</b><div class="note">${esc(b.src)} · ${esc(b.ts)}</div>${b.details?`<div class="note" style="margin-top:4px">${esc(b.details)}</div>`:""}</div>`).join(""):'<div class="card"><div class="note">None on file. 🎉</div></div>')+
+ `<button class="btn sec small" onclick="vSet()">Back</button>`}
 
 /* ============================== BOOT ============================== */
 load();nav();render();syncBind();
