@@ -475,7 +475,11 @@ function load(){try{S=Object.assign(defaults(),JSON.parse(localStorage.el||"{}")
 function save(push=true){S.ts=Date.now();localStorage.el=JSON.stringify(S);if(push&&SYNCU)schedPush()}
 /* ---- cloud sync (URL lives in encrypted playbook; key never leaves device) ---- */
 let SYNCU=null,pushT=null;
-function syncBind(){SYNCU=(PB&&PB.sync&&PB.sync.state)||null;if(SYNCU)pullState()}
+function syncBind(){SYNCU=(PB&&PB.sync&&PB.sync.state)||null;if(SYNCU){pullState();pullPB()}}
+async function pullPB(){if(!SYNCU)return;try{
+ const r=await fetch(SYNCU.replace("/state/","/pb/"));const j=await r.json();
+ if(j&&(j.rev||0)>=(PB.rev||0)&&JSON.stringify(j)!==JSON.stringify(PB)){const sync=PB.sync;PB=j;PB.sync=PB.sync||sync;localStorage.el_pb=JSON.stringify(PB);render()}
+ }catch(e){}}
 function schedPush(){clearTimeout(pushT);pushT=setTimeout(pushState,1500)}
 function pushState(){if(!SYNCU)return;const body={...S,set:{...S.set,key:""}};
  fetch(SYNCU,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)}).catch(()=>{})}
@@ -488,7 +492,7 @@ async function pullState(){if(!SYNCU)return;try{
   if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
   localStorage.el=JSON.stringify(S);render()}
  }catch(e){}}
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SYNCU)pullState()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SYNCU){pullState();pullPB()}});
 
 /* ============================== MODELS ============================== */
 function readiness(){const dom={};for(const[k,m]of Object.entries(KC)){(dom[m[1]]=dom[m[1]]||[]).push(S.kc[k].lv/4)}
