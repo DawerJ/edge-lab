@@ -470,7 +470,7 @@ function defaults(){return{v:1,created:TODAY(),xp:0,streak:{n:0,last:null,frz:1,
  set:{key:"",par:1,base:600,target:2500,horizon:4,tax:0.42,voice:false}}}
 function load(){try{S=Object.assign(defaults(),JSON.parse(localStorage.el||"{}"));S.set=Object.assign(defaults().set,S.set);S.kc=Object.assign(defaults().kc,S.kc)}catch(e){S=defaults()}
  if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
- if(S.evStart===null)S.evStart=oddsAny();
+ if(S.evStart==null||S.evV!==2){S.evStart=Math.min(oddsAny(),.20);S.evV=2}
  save()}
 function save(push=true){S.ts=Date.now();localStorage.el=JSON.stringify(S);if(push&&SYNCU)schedPush()}
 /* ---- cloud sync (URL lives in encrypted playbook; key never leaves device) ---- */
@@ -485,16 +485,18 @@ function pushState(){if(!SYNCU)return;const body={...S,set:{...S.set,key:""}};
  fetch(SYNCU,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)}).catch(()=>{})}
 async function pullState(){if(!SYNCU)return;try{
  const r=await fetch(SYNCU);const j=await r.json();
- if(j&&j.ts&&j.ts>(S.ts||0)){const k=S.set.key;
+ if(j&&j.ts&&j.ts>(S.ts||0)&&j.kc&&j.streak){const k=S.set.key;const ev=S.evStart,evv=S.evV;
   S=Object.assign(defaults(),j);
   S.set=Object.assign(defaults().set,j.set||{});if(k)S.set.key=k;
   S.kc=Object.assign(defaults().kc,j.kc||{});
+  if(S.evStart==null&&ev!=null){S.evStart=ev;S.evV=evv}
+  if(S.evStart==null||S.evV!==2){S.evStart=Math.min(oddsAny(),.20);S.evV=2}
   if(!S.quests||S.quests.d!==TODAY())S.quests={d:TODAY(),drill:0,sprint:0,learn:0};
   localStorage.el=JSON.stringify(S);render()}
  }catch(e){}}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SYNCU){pullState();pullPB()}});
 /* ---- automatic bug reporting ---- */
-const APPV="v13";
+const APPV="v14";
 function bugReport(src,summary,details){try{
  if(!SYNCU)return;const key=src+"|"+String(summary).slice(0,80);
  if(localStorage.el_lastbug===key)return;localStorage.el_lastbug=key;
